@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "915681305539",
+    "project_id": "banelo-databasenew",
+    "storage_bucket": "banelo-databasenew.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915681305539:android:da14ca3caf437db2fc9376",
+        "android_client_info": {
+          "package_name": "com.project.dba_delatorre_dometita_ramirez_tan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbdziyI-8ZgFhZQezzd7xiYtj1c-mXxlU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,36 @@
+# Generated data files
+datasets/
+*.csv
+04_seed_data/*.csv
+05_csv_import/*.csv
+06_ml_datasets/*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Environment
+.env
+venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Backups
+*.sql.backup
+backup_*.sql

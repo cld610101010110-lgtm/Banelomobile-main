@@ -1,0 +1,26 @@
+# Python Dependencies for Firestore → PostgreSQL Migration
+# Install: pip3 install -r requirements.txt
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# PostgreSQL
+psycopg2-binary>=2.9.9
+sqlalchemy>=2.0.0
+
+# Kaggle dataset download
+kaggle>=1.5.16
+
+# Data generation & utilities
+faker>=20.0.0
+python-dateutil>=2.8.2
+
+# Progress bars
+tqdm>=4.66.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# JSON processing
+ijson>=3.2.0
