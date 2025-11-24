@@ -753,7 +753,10 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                             AuditHelper.logSale(product.name, quantity, totalPrice)
                                         } else {
                                             scope.launch {
-                                                snackbarHostState.showSnackbar("Sale failed for ${product.name}")
+                                                snackbarHostState.showSnackbar(
+                                                    "Sale failed for ${product.name} - Check ingredient stock!",
+                                                    duration = SnackbarDuration.Long
+                                                )
                                             }
                                         }
                                     }
