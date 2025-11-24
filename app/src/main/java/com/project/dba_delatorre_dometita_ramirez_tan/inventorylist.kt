@@ -52,7 +52,7 @@ fun InventoryListScreen(
 
     // ✅ Fetch products when screen opens
     LaunchedEffect(Unit) {
-        android.util.Log.d("InventoryList", "🔄 Fetching products from Firebase...")
+        android.util.Log.d("InventoryList", "🔄 Fetching products from API...")
         viewModel3.getAllProducts()
 
         android.util.Log.d("InventoryList", "📊 Products in UI:")

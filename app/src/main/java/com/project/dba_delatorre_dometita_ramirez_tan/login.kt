@@ -166,7 +166,7 @@ fun Login(navController: NavController) {
                                                 // ✅ Initialize AuditHelper (safe to call multiple times)
                                                 AuditHelper.initialize(context)
 
-                                                // ✅ Use UserRepository for Firebase Auth login
+                                                // ✅ Use UserRepository for API login
                                                 val userRepository = UserRepository(userDao)
                                                 val user = userRepository.loginUser(username, password)
 

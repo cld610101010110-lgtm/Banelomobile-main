@@ -23,13 +23,13 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
         syncRecipes()
     }
 
-    // Sync recipes from Firebase (called on app start or manually)
+    // Sync recipes from API (called on app start or manually)
     fun syncRecipes() {
         viewModelScope.launch {
             isSyncing = true
             syncMessage = "Syncing recipes from server..."
 
-            repository.syncRecipesFromFirebase()
+            repository.syncRecipesFromApi()
                 .onSuccess {
                     recipesList = repository.getAllRecipesWithIngredients()
                     syncMessage = "Recipes synced successfully"

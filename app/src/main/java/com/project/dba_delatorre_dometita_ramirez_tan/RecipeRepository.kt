@@ -16,7 +16,7 @@ class RecipeRepository(
 
     // ============ SYNC FROM API ============
 
-    suspend fun syncRecipesFromFirebase(): Result<Unit> {
+    suspend fun syncRecipesFromApi(): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d(TAG, "🔄 Starting recipe sync from API...")

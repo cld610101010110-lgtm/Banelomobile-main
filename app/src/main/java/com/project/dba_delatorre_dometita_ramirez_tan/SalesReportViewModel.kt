@@ -35,24 +35,19 @@ class SalesReportViewModel(
         syncAndLoadSales()
     }
 
-    // ✅ NEW: Sync from Firebase then load sales
+    // Load sales from local database (sales are synced via API during transactions)
     fun syncAndLoadSales() {
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
 
-            // Sync from Firebase
-            val result = productRepository.syncAllSalesFromFirebase()
-
-            if (result.isSuccess) {
-                // Load sales from Room (now synced with Firebase)
+            try {
+                // Sales are automatically synced in real-time via API during transactions
+                // Just load from local database
                 getAllSales()
                 filterByPeriod("Week") // Default to Week view
-            } else {
-                errorMessage = "Failed to sync sales from Firebase"
-                // Still try to load from Room (cached data)
-                getAllSales()
-                filterByPeriod("Week")
+            } catch (e: Exception) {
+                errorMessage = "Failed to load sales: ${e.message}"
             }
 
             isLoading = false
