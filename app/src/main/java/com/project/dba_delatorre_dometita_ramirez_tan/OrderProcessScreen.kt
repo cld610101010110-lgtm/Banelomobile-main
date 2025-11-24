@@ -747,7 +747,11 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                         gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else null,
                                         cashierUsername = "admin" // or use your logged-in username
                                     ) { success ->
-                                        if (!success) {
+                                        if (success) {
+                                            // ✅ FIX: Log sale to audit trail
+                                            val totalPrice = product.price * quantity
+                                            AuditHelper.logSale(product.name, quantity, totalPrice)
+                                        } else {
                                             scope.launch {
                                                 snackbarHostState.showSnackbar("Sale failed for ${product.name}")
                                             }
