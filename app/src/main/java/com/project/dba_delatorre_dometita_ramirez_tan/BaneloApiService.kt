@@ -23,7 +23,7 @@ data class ProductRequest(
 )
 
 data class ProductResponse(
-    val firebaseId: String,
+    val firebaseId: String?,  // Nullable - some products may not have firebase_id
     val name: String,
     val category: String,
     val price: Double,
