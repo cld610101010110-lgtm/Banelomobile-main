@@ -481,7 +481,7 @@ class ProductRepository(
 
     private fun convertToEntity(response: ProductResponse): Entity_Products {
         return Entity_Products(
-            firebaseId = response.firebaseId,
+            firebaseId = response.firebaseId ?: "",  // Use empty string if null
             name = response.name,
             category = response.category,
             price = response.price,
