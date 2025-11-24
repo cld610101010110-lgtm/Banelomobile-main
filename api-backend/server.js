@@ -488,8 +488,10 @@ app.get('/api/recipes', async (req, res) => {
                     COALESCE(
                         json_agg(
                             json_build_object(
-                                'ingredient_name', ri.ingredient_name,
-                                'quantity_needed', ri.quantity_needed,
+                                'firebaseId', ri.firebase_id,
+                                'ingredientFirebaseId', ing_prod.firebase_id,
+                                'ingredientName', ri.ingredient_name,
+                                'quantityNeeded', ri.quantity_needed,
                                 'unit', ri.unit
                             )
                         ) FILTER (WHERE ri.ingredient_name IS NOT NULL),
@@ -498,6 +500,7 @@ app.get('/api/recipes', async (req, res) => {
              FROM recipes r
              LEFT JOIN products p ON r.product_firebase_id = p.id
              LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_firebase_id
+             LEFT JOIN products ing_prod ON ri.ingredient_firebase_id = ing_prod.id
              GROUP BY r.id, r.firebase_id, r.product_firebase_id, r.product_name,
                       r.instructions, r.prep_time_minutes, r.cook_time_minutes,
                       r.servings, r.created_at, r.updated_at, p.name
@@ -522,8 +525,10 @@ app.get('/api/recipes/product/:firebaseId', async (req, res) => {
                     COALESCE(
                         json_agg(
                             json_build_object(
-                                'ingredient_name', ri.ingredient_name,
-                                'quantity_needed', ri.quantity_needed,
+                                'firebaseId', ri.firebase_id,
+                                'ingredientFirebaseId', ing_prod.firebase_id,
+                                'ingredientName', ri.ingredient_name,
+                                'quantityNeeded', ri.quantity_needed,
                                 'unit', ri.unit
                             )
                         ) FILTER (WHERE ri.ingredient_name IS NOT NULL),
@@ -531,6 +536,7 @@ app.get('/api/recipes/product/:firebaseId', async (req, res) => {
                     ) as ingredients
              FROM recipes r
              LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_firebase_id
+             LEFT JOIN products ing_prod ON ri.ingredient_firebase_id = ing_prod.id
              WHERE r.product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1)
              GROUP BY r.id, r.firebase_id, r.product_firebase_id, r.product_name,
                       r.instructions, r.prep_time_minutes, r.cook_time_minutes,
