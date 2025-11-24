@@ -53,7 +53,7 @@ Create `res/xml/network_security_config.xml`:
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">192.168.1.0</domain>
+        <domain includeSubdomains="true">192.168.254.176</domain>
     </domain-config>
 </network-security-config>
 ```
