@@ -482,7 +482,7 @@ app.post('/api/sales/process', async (req, res) => {
 app.get('/api/recipes', async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+            `SELECT r.id, r.firebase_id, p.firebase_id as product_firebase_id, r.product_name,
                     r.instructions, r.prep_time_minutes, r.cook_time_minutes,
                     r.servings, r.created_at, r.updated_at, p.name as product_name,
                     COALESCE(
@@ -501,7 +501,7 @@ app.get('/api/recipes', async (req, res) => {
              LEFT JOIN products p ON r.product_firebase_id = p.id
              LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_firebase_id
              LEFT JOIN products ing_prod ON ri.ingredient_firebase_id = ing_prod.id
-             GROUP BY r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+             GROUP BY r.id, r.firebase_id, p.firebase_id, r.product_name,
                       r.instructions, r.prep_time_minutes, r.cook_time_minutes,
                       r.servings, r.created_at, r.updated_at, p.name
              ORDER BY r.product_name`
@@ -519,7 +519,7 @@ app.get('/api/recipes/product/:firebaseId', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+            `SELECT r.id, r.firebase_id, p.firebase_id as product_firebase_id, r.product_name,
                     r.instructions, r.prep_time_minutes, r.cook_time_minutes,
                     r.servings, r.created_at, r.updated_at,
                     COALESCE(
@@ -535,10 +535,11 @@ app.get('/api/recipes/product/:firebaseId', async (req, res) => {
                         '[]'::json
                     ) as ingredients
              FROM recipes r
+             LEFT JOIN products p ON r.product_firebase_id = p.id
              LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_firebase_id
              LEFT JOIN products ing_prod ON ri.ingredient_firebase_id = ing_prod.id
-             WHERE r.product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1)
-             GROUP BY r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+             WHERE p.firebase_id = $1
+             GROUP BY r.id, r.firebase_id, p.firebase_id, r.product_name,
                       r.instructions, r.prep_time_minutes, r.cook_time_minutes,
                       r.servings, r.created_at, r.updated_at`,
             [firebaseId]

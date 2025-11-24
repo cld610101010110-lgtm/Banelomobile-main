@@ -24,6 +24,7 @@ data class ProductRequest(
 )
 
 data class ProductResponse(
+    @SerializedName("firebase_id")
     val firebaseId: String?,  // Nullable - some products may not have firebase_id
     val name: String,
     val category: String,
@@ -32,7 +33,8 @@ data class ProductResponse(
     val inventory_a: Int,
     val inventory_b: Int,
     val cost_per_unit: Double,
-    val imageUri: String
+    @SerializedName("image_uri")
+    val imageUri: String?
 )
 
 data class SalesRequest(
