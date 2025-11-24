@@ -44,13 +44,26 @@ import java.util.*
 
 data class ReceiptData(
     val items: List<Pair<String, Int>>, // Product name to quantity
-    val totalPrice: Int,
+    val subtotal: Double,               // Original price before VAT/discount
+    val vatAmount: Double,              // 12% VAT
+    val discountType: String,           // "None", "Senior Citizen", "PWD", "Others"
+    val discountPercent: Double,        // Discount percentage applied
+    val discountAmount: Double,         // Amount discounted
+    val totalPrice: Double,             // Final price after VAT and discount
     val cashReceived: Double,
     val change: Double,
     val paymentMode: String,
     val gcashReferenceId: String,
     val orderDate: String
 )
+
+// Philippine discount types
+object DiscountTypes {
+    const val NONE = "None"
+    const val SENIOR_CITIZEN = "Senior Citizen (20%)"
+    const val PWD = "PWD (20%)"
+    const val OTHERS = "Others"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +85,46 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
     var showPrintableReceipt by remember { mutableStateOf(false) }
     var receiptData by remember { mutableStateOf<ReceiptData?>(null) }
 
-    val totalPrice = cartItems.sumOf { it.price.toInt() }
+    // Discount states
+    var selectedDiscount by remember { mutableStateOf(DiscountTypes.NONE) }
+    var customDiscountPercent by remember { mutableStateOf("") }
+    var showCustomDiscountDialog by remember { mutableStateOf(false) }
+    var discountDropdownExpanded by remember { mutableStateOf(false) }
+
+    // Philippine VAT rate
+    val VAT_RATE = 0.12
+
+    // Calculate prices
+    val subtotal = cartItems.sumOf { it.price }
+    val vatAmount = subtotal * VAT_RATE
+
+    // Calculate discount
+    val discountPercent = when (selectedDiscount) {
+        DiscountTypes.SENIOR_CITIZEN -> 20.0
+        DiscountTypes.PWD -> 20.0
+        DiscountTypes.OTHERS -> customDiscountPercent.toDoubleOrNull() ?: 0.0
+        else -> 0.0
+    }
+
+    // For Senior/PWD: They are VAT exempt, so discount is applied on VAT-exclusive price
+    // For Others: Discount is applied on the subtotal (VAT inclusive for simplicity)
+    val discountAmount = if (selectedDiscount == DiscountTypes.SENIOR_CITIZEN || selectedDiscount == DiscountTypes.PWD) {
+        // VAT exempt + 20% discount on VAT-exclusive price
+        val vatExclusivePrice = subtotal / (1 + VAT_RATE)
+        vatExclusivePrice * (discountPercent / 100)
+    } else {
+        subtotal * (discountPercent / 100)
+    }
+
+    // Final total calculation
+    val totalPrice = if (selectedDiscount == DiscountTypes.SENIOR_CITIZEN || selectedDiscount == DiscountTypes.PWD) {
+        // VAT exempt: use VAT-exclusive price minus discount
+        val vatExclusivePrice = subtotal / (1 + VAT_RATE)
+        vatExclusivePrice - discountAmount
+    } else {
+        // Regular: subtotal minus discount (VAT already included in prices)
+        subtotal - discountAmount
+    }
     val gradient = Brush.verticalGradient(listOf(Color(0xFFF3D3BD), Color(0xFF837060)))
 
     // ✅ FIX: Store available quantities in state (outside of map)
@@ -421,15 +473,126 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text(
-                            "Total: ₱$totalPrice",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            modifier = Modifier.align(Alignment.End)
-                        )
-
+                        // Discount Selection
+                        Text("Discount:", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                         Spacer(modifier = Modifier.height(8.dp))
+
+                        ExposedDropdownMenuBox(
+                            expanded = discountDropdownExpanded,
+                            onExpandedChange = { discountDropdownExpanded = !discountDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = if (selectedDiscount == DiscountTypes.OTHERS && customDiscountPercent.isNotEmpty())
+                                    "Others ($customDiscountPercent%)" else selectedDiscount,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = discountDropdownExpanded) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = discountDropdownExpanded,
+                                onDismissRequest = { discountDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(DiscountTypes.NONE) },
+                                    onClick = {
+                                        selectedDiscount = DiscountTypes.NONE
+                                        customDiscountPercent = ""
+                                        discountDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(DiscountTypes.SENIOR_CITIZEN) },
+                                    onClick = {
+                                        selectedDiscount = DiscountTypes.SENIOR_CITIZEN
+                                        customDiscountPercent = ""
+                                        discountDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(DiscountTypes.PWD) },
+                                    onClick = {
+                                        selectedDiscount = DiscountTypes.PWD
+                                        customDiscountPercent = ""
+                                        discountDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Others (Custom %)") },
+                                    onClick = {
+                                        selectedDiscount = DiscountTypes.OTHERS
+                                        discountDropdownExpanded = false
+                                        showCustomDiscountDialog = true
+                                    }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Price breakdown
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Subtotal:", color = Color.Gray)
+                                    Text("₱${"%.2f".format(subtotal)}")
+                                }
+
+                                if (selectedDiscount == DiscountTypes.SENIOR_CITIZEN || selectedDiscount == DiscountTypes.PWD) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("VAT (12%):", color = Color.Gray)
+                                        Text("₱${"%.2f".format(vatAmount)} (Exempt)", color = Color.Green)
+                                    }
+                                } else {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("VAT (12% included):", color = Color.Gray)
+                                        Text("₱${"%.2f".format(vatAmount)}")
+                                    }
+                                }
+
+                                if (discountAmount > 0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Discount (${"%.0f".format(discountPercent)}%):", color = Color.Green)
+                                        Text("-₱${"%.2f".format(discountAmount)}", color = Color.Green)
+                                    }
+                                }
+
+                                Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Total:", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                    Text("₱${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // Payment Mode Selection
                         Text("Payment Mode:", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
@@ -554,10 +717,15 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                 val items = cartItems.groupBy { it.firebaseId }.map { (_, items) ->
                                     val product = items.first()
                                     val quantity = items.size
-                                    "${product.name} (₱${product.price})" to quantity
+                                    "${product.name} (₱${product.price.toInt()})" to quantity
                                 }
                                 receiptData = ReceiptData(
                                     items = items,
+                                    subtotal = subtotal,
+                                    vatAmount = vatAmount,
+                                    discountType = selectedDiscount,
+                                    discountPercent = discountPercent,
+                                    discountAmount = discountAmount,
                                     totalPrice = totalPrice,
                                     cashReceived = cashAmount,
                                     change = if (change >= 0) change else 0.0,
@@ -592,6 +760,8 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                 cashReceived = ""
                                 gcashReferenceId = ""
                                 paymentMode = "Cash"
+                                selectedDiscount = DiscountTypes.NONE
+                                customDiscountPercent = ""
                                 cartVisible = false
                                 showPrintableReceipt = true
 
@@ -658,6 +828,61 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                         showQuantityDialog = false
                         quantityDialogProduct = null
                         quantityInput = ""
+                    }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Custom Discount Dialog
+        if (showCustomDiscountDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showCustomDiscountDialog = false
+                    if (customDiscountPercent.isEmpty()) {
+                        selectedDiscount = DiscountTypes.NONE
+                    }
+                },
+                title = { Text("Enter Custom Discount") },
+                text = {
+                    Column {
+                        Text("Enter discount percentage (numbers only):")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = customDiscountPercent,
+                            onValueChange = {
+                                // Only allow digits and one decimal point, max 100
+                                if (it.isEmpty() || (it.matches(Regex("^\\d*\\.?\\d*$")) && (it.toDoubleOrNull() ?: 0.0) <= 100)) {
+                                    customDiscountPercent = it
+                                }
+                            },
+                            label = { Text("Discount %") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth(),
+                            suffix = { Text("%") }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val percent = customDiscountPercent.toDoubleOrNull() ?: 0.0
+                        if (percent > 0 && percent <= 100) {
+                            showCustomDiscountDialog = false
+                        } else {
+                            customDiscountPercent = ""
+                            selectedDiscount = DiscountTypes.NONE
+                            showCustomDiscountDialog = false
+                        }
+                    }) {
+                        Text("Apply")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        customDiscountPercent = ""
+                        selectedDiscount = DiscountTypes.NONE
+                        showCustomDiscountDialog = false
                     }) {
                         Text("Cancel")
                     }
@@ -746,6 +971,54 @@ fun PrintableReceiptDialog(
 
                 Divider(modifier = Modifier.padding(vertical = 16.dp))
 
+                // Subtotal
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "Subtotal:", fontSize = 14.sp)
+                    Text(text = "₱${"%.2f".format(receiptData.subtotal)}", fontSize = 14.sp)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // VAT
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "VAT (12%):", fontSize = 14.sp)
+                    if (receiptData.discountType == DiscountTypes.SENIOR_CITIZEN ||
+                        receiptData.discountType == DiscountTypes.PWD) {
+                        Text(text = "₱${"%.2f".format(receiptData.vatAmount)} (Exempt)", fontSize = 14.sp, color = Color.Green)
+                    } else {
+                        Text(text = "₱${"%.2f".format(receiptData.vatAmount)} (Included)", fontSize = 14.sp)
+                    }
+                }
+
+                // Discount (if applied)
+                if (receiptData.discountAmount > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Discount (${receiptData.discountType} - ${"%.0f".format(receiptData.discountPercent)}%):",
+                            fontSize = 14.sp,
+                            color = Color.Green
+                        )
+                        Text(
+                            text = "-₱${"%.2f".format(receiptData.discountAmount)}",
+                            fontSize = 14.sp,
+                            color = Color.Green
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // Total
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -757,7 +1030,7 @@ fun PrintableReceiptDialog(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "₱${receiptData.totalPrice}",
+                        text = "₱${"%.2f".format(receiptData.totalPrice)}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -904,9 +1177,24 @@ fun printReceipt(context: android.content.Context, receiptData: ReceiptData) {
                 "<div class=\"item-row\"><span>$productInfo</span><span>x$quantity</span></div>"
             }}
             <div class="divider"></div>
+            <div class="item-row">
+                <span>Subtotal:</span>
+                <span>₱${String.format("%.2f", receiptData.subtotal)}</span>
+            </div>
+            <div class="item-row">
+                <span>VAT (12%):</span>
+                <span>₱${String.format("%.2f", receiptData.vatAmount)}${if (receiptData.discountType == DiscountTypes.SENIOR_CITIZEN || receiptData.discountType == DiscountTypes.PWD) " (Exempt)" else " (Incl.)"}</span>
+            </div>
+            ${if (receiptData.discountAmount > 0) """
+            <div class="item-row" style="color: green;">
+                <span>Discount (${receiptData.discountType}):</span>
+                <span>-₱${String.format("%.2f", receiptData.discountAmount)}</span>
+            </div>
+            """ else ""}
+            <div class="divider"></div>
             <div class="total-row">
                 <span>TOTAL:</span>
-                <span>₱${receiptData.totalPrice}</span>
+                <span>₱${String.format("%.2f", receiptData.totalPrice)}</span>
             </div>
             <div class="payment-info">
                 <div><strong>Payment Method:</strong> ${receiptData.paymentMode}</div>
