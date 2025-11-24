@@ -622,13 +622,13 @@ app.get('/api/audit', async (req, res) => {
 
 // Create audit log
 app.post('/api/audit', async (req, res) => {
-    const { action, table_name, record_id, user_id, changes } = req.body;
+    const { username, action, description, dateTime, status, metadata } = req.body;
 
     try {
         await pool.query(
-            `INSERT INTO audit_logs (action, table_name, record_id, user_id, changes)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [action, table_name, record_id, user_id, JSON.stringify(changes)]
+            `INSERT INTO audit_logs (username, action, description, date_time, status, metadata)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [username, action, description, dateTime || new Date().toISOString(), status || 'Success', metadata ? JSON.stringify(metadata) : null]
         );
 
         res.json({ success: true, message: 'Audit log created' });
