@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = 3000;
@@ -51,21 +52,52 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-// Get user by username (for login)
+// Get user by username (for login) - WITH PASSWORD VERIFICATION
 app.post('/api/users/login', async (req, res) => {
-    const { username } = req.body;
+    const { username, password } = req.body;
 
     try {
+        // Validate input
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username and password are required'
+            });
+        }
+
+        // Get user from database
         const result = await pool.query(
             'SELECT * FROM users WHERE username = $1 AND status = $2',
             [username, 'active']
         );
 
-        if (result.rows.length > 0) {
-            res.json({ success: true, data: result.rows[0] });
-        } else {
-            res.status(404).json({ success: false, error: 'User not found' });
+        if (result.rows.length === 0) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid username or password'
+            });
         }
+
+        const user = result.rows[0];
+
+        // Verify password
+        const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!passwordMatch) {
+            console.log(`❌ Failed login attempt for user: ${username}`);
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid username or password'
+            });
+        }
+
+        console.log(`✅ Successful login: ${username} (${user.role})`);
+
+        // Don't send password_hash to client
+        delete user.password_hash;
+
+        res.json({ success: true, data: user });
+
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).json({ success: false, error: error.message });

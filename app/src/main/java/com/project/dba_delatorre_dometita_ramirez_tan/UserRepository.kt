@@ -81,8 +81,8 @@ class UserRepository(
                 Log.d(TAG, "🔐 Attempting login...")
                 Log.d(TAG, "Username: $username")
 
-                // Call API login
-                val request = LoginRequest(username = username)
+                // Call API login with password
+                val request = LoginRequest(username = username, password = password)
                 val result = BaneloApiService.safeCall {
                     BaneloApiService.api.login(request)
                 }

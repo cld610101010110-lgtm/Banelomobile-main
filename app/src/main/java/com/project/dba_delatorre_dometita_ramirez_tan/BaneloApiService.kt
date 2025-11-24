@@ -46,7 +46,8 @@ data class SalesRequest(
 )
 
 data class LoginRequest(
-    val username: String
+    val username: String,
+    val password: String
 )
 
 data class UserResponse(
