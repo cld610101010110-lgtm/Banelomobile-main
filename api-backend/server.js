@@ -410,7 +410,19 @@ app.post('/api/sales/process', async (req, res) => {
             console.log('⚠️ No recipe found - no ingredients to deduct');
         }
 
-        // Step 3: Deduct each ingredient
+        // Step 3: Validate ingredient stock BEFORE deducting
+        for (const ingredient of ingredients) {
+            const totalNeeded = Math.ceil(ingredient.quantity_needed * quantity);
+            const availableStock = ingredient.inventory_a + ingredient.inventory_b;
+
+            if (availableStock < totalNeeded) {
+                throw new Error(`Insufficient stock for ${ingredient.name}. Need: ${totalNeeded}, Available: ${availableStock}`);
+            }
+        }
+
+        console.log('✅ All ingredients have sufficient stock');
+
+        // Step 4: Deduct each ingredient
         for (const ingredient of ingredients) {
             const totalNeeded = ingredient.quantity_needed * quantity;
 
@@ -439,10 +451,6 @@ app.post('/api/sales/process', async (req, res) => {
 
             const newQuantity = inventoryA + inventoryB;
             console.log(`   After - A: ${inventoryA}, B: ${inventoryB}, Total: ${newQuantity}`);
-
-            if (remaining > 0) {
-                console.log(`⚠️ Warning: Insufficient stock for ${ingredient.name}! Short by: ${remaining}`);
-            }
 
             // Update inventory
             await client.query(
