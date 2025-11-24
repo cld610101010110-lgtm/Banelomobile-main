@@ -26,8 +26,7 @@ class RecipeRepository(
                 }
 
                 if (recipesResult.isSuccess) {
-                    val apiResponse = recipesResult.getOrNull()
-                    val recipes = apiResponse?.data ?: return@withContext Result.success(Unit)
+                    val recipes = recipesResult.getOrNull() ?: return@withContext Result.success(Unit)
 
                     Log.d(TAG, "📋 Fetched ${recipes.size} recipes")
 
