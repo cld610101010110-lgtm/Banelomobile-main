@@ -105,11 +105,11 @@ data class RecipesApiResponse(
 )
 
 data class IngredientResponse(
-    val firebaseId: String,
-    val ingredientFirebaseId: String,
-    val ingredientName: String,
-    val quantityNeeded: Double,
-    val unit: String
+    val firebaseId: String? = null,
+    val ingredientFirebaseId: String? = null,
+    val ingredientName: String? = null,
+    val quantityNeeded: Double? = null,
+    val unit: String? = null
 )
 
 // ============ RETROFIT API INTERFACE ============
