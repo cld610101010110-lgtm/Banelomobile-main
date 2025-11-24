@@ -11,7 +11,7 @@ interface Dao_Recipe {
 
     @Transaction
     @Query("SELECT * FROM recipes WHERE productFirebaseId = :productId LIMIT 1")
-    suspend fun getRecipeWithIngredients(productId: Int): RecipeWithIngredients?
+    suspend fun getRecipeWithIngredients(productId: String): RecipeWithIngredients?
 
     @Transaction
     @Query("SELECT * FROM recipes")
@@ -49,9 +49,6 @@ interface Dao_Recipe {
 
     @Query("SELECT * FROM recipes WHERE productFirebaseId = :productFirebaseId LIMIT 1")
     suspend fun getRecipeByProductFirebaseId(productFirebaseId: String): Entity_Recipe?
-
-    @Query("SELECT * FROM recipes WHERE productFirebaseId = :productId LIMIT 1")
-    suspend fun getRecipeByProductId(productId: Int): Entity_Recipe?
 
     @Query("SELECT * FROM recipes WHERE firebaseId = :recipeFirebaseId LIMIT 1")
     suspend fun getRecipeByFirebaseId(recipeFirebaseId: String): Entity_Recipe?

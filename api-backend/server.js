@@ -482,18 +482,25 @@ app.post('/api/sales/process', async (req, res) => {
 app.get('/api/recipes', async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT r.*, p.name as product_name,
-                    json_agg(
-                        json_build_object(
-                            'ingredient_name', ri.ingredient_name,
-                            'quantity_needed', ri.quantity_needed,
-                            'unit', ri.unit
-                        )
+            `SELECT r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+                    r.instructions, r.prep_time_minutes, r.cook_time_minutes,
+                    r.servings, r.created_at, r.updated_at, p.name as product_name,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'ingredient_name', ri.ingredient_name,
+                                'quantity_needed', ri.quantity_needed,
+                                'unit', ri.unit
+                            )
+                        ) FILTER (WHERE ri.ingredient_name IS NOT NULL),
+                        '[]'::json
                     ) as ingredients
              FROM recipes r
              LEFT JOIN products p ON r.product_firebase_id = p.id
              LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_firebase_id
-             GROUP BY r.id, p.name
+             GROUP BY r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+                      r.instructions, r.prep_time_minutes, r.cook_time_minutes,
+                      r.servings, r.created_at, r.updated_at, p.name
              ORDER BY r.product_name`
         );
         res.json({ success: true, data: result.rows });
@@ -509,18 +516,25 @@ app.get('/api/recipes/product/:firebaseId', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT r.*,
-                    json_agg(
-                        json_build_object(
-                            'ingredient_name', ri.ingredient_name,
-                            'quantity_needed', ri.quantity_needed,
-                            'unit', ri.unit
-                        )
+            `SELECT r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+                    r.instructions, r.prep_time_minutes, r.cook_time_minutes,
+                    r.servings, r.created_at, r.updated_at,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'ingredient_name', ri.ingredient_name,
+                                'quantity_needed', ri.quantity_needed,
+                                'unit', ri.unit
+                            )
+                        ) FILTER (WHERE ri.ingredient_name IS NOT NULL),
+                        '[]'::json
                     ) as ingredients
              FROM recipes r
              LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_firebase_id
              WHERE r.product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1)
-             GROUP BY r.id`,
+             GROUP BY r.id, r.firebase_id, r.product_firebase_id, r.product_name,
+                      r.instructions, r.prep_time_minutes, r.cook_time_minutes,
+                      r.servings, r.created_at, r.updated_at`,
             [firebaseId]
         );
 

@@ -31,22 +31,54 @@ class RecipeRepository(
 
                     Log.d(TAG, "📋 Fetched ${recipes.size} recipes")
 
-                    val recipesList = recipes.map { r ->
-                        Entity_Recipe(
-                            recipeId = 0,
-                            firebaseId = r.firebaseId ?: "",
-                            productFirebaseId = r.productFirebaseId ?: "",
-                            productName = r.productName ?: ""
-                        )
-                    }
-
+                    // Clear existing data
+                    daoRecipe.clearAllIngredients()
                     daoRecipe.clearAllRecipes()
-                    if (recipesList.isNotEmpty()) {
-                        daoRecipe.insertAllRecipes(recipesList)
-                        Log.d(TAG, "✅ Inserted ${recipesList.size} recipes into Room")
+
+                    var recipesInserted = 0
+                    var ingredientsInserted = 0
+
+                    // Insert each recipe and its ingredients
+                    recipes.forEach { apiRecipe ->
+                        // Insert recipe and get the generated ID
+                        val recipe = Entity_Recipe(
+                            recipeId = 0, // Let Room auto-generate
+                            firebaseId = apiRecipe.firebaseId ?: "",
+                            productFirebaseId = apiRecipe.productFirebaseId ?: "",
+                            productName = apiRecipe.productName ?: ""
+                        )
+
+                        val recipeId = daoRecipe.insertRecipe(recipe)
+                        recipesInserted++
+
+                        Log.d(TAG, "✅ Inserted recipe: ${recipe.productName} with ID: $recipeId")
+
+                        // Insert ingredients for this recipe
+                        val ingredients = apiRecipe.ingredients ?: emptyList()
+                        if (ingredients.isNotEmpty()) {
+                            val ingredientEntities = ingredients.map { ing ->
+                                Entity_RecipeIngredient(
+                                    id = 0, // Let Room auto-generate
+                                    firebaseId = ing.firebaseId,
+                                    recipeId = recipeId.toInt(),
+                                    ingredientFirebaseId = ing.ingredientFirebaseId,
+                                    ingredientName = ing.ingredientName,
+                                    quantityNeeded = ing.quantityNeeded,
+                                    unit = ing.unit
+                                )
+                            }
+
+                            daoRecipe.insertAllIngredients(ingredientEntities)
+                            ingredientsInserted += ingredientEntities.size
+
+                            Log.d(TAG, "   📦 Inserted ${ingredientEntities.size} ingredients")
+                        }
                     }
 
                     Log.d(TAG, "✅ Recipe sync completed successfully")
+                    Log.d(TAG, "   Recipes: $recipesInserted")
+                    Log.d(TAG, "   Ingredients: $ingredientsInserted")
+
                     Result.success(Unit)
                 } else {
                     Log.e(TAG, "❌ API sync failed: ${recipesResult.exceptionOrNull()?.message}")
@@ -71,11 +103,11 @@ class RecipeRepository(
         }
     }
 
-    suspend fun getRecipeForProduct(productId: Int): RecipeWithIngredients? {
+    suspend fun getRecipeForProduct(productFirebaseId: String): RecipeWithIngredients? {
         return try {
-            daoRecipe.getRecipeWithIngredients(productId)
+            daoRecipe.getRecipeWithIngredients(productFirebaseId)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting recipe for product $productId: ${e.message}", e)
+            Log.e(TAG, "Error getting recipe for product $productFirebaseId: ${e.message}", e)
             null
         }
     }

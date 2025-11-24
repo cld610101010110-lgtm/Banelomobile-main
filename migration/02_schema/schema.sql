@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS recipes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     firebase_id VARCHAR(255) UNIQUE,           -- Original Firestore doc ID
     recipe_id INTEGER,                         -- Local Room database ID
-    product_firebase_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    product_firebase_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     product_name VARCHAR(255),
     instructions TEXT,                         -- Cooking instructions
     prep_time_minutes INTEGER,                 -- Preparation time
