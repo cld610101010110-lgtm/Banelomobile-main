@@ -190,7 +190,7 @@ fun TransferProductCard(
             // Product Image
             Image(
                 painter = rememberAsyncImagePainter(
-                    model = product.imageUri.ifEmpty { R.drawable.img }
+                    model = product.imageUri ?: R.drawable.img
                 ),
                 contentDescription = product.name,
                 modifier = Modifier
@@ -212,7 +212,7 @@ fun TransferProductCard(
                     color = Color(0xFF6F4E37)
                 )
                 Text(
-                    product.category,
+                    product.category ?: "",
                     fontSize = 13.sp,
                     color = Color.Gray
                 )

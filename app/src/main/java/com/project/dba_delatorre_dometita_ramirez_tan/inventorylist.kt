@@ -322,7 +322,7 @@ fun InventoryListScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        if (product.imageUri.isNotEmpty()) {
+                                        if (product.imageUri.isNullOrEmpty()) {
                                             Image(
                                                 painter = rememberAsyncImagePainter(
                                                     model = product.imageUri,

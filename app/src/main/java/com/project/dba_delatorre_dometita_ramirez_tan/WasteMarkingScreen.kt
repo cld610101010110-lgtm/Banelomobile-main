@@ -144,8 +144,8 @@ fun WasteMarkingScreen(
 
                                     val wasteLog = Entity_WasteLog(
                                         productFirebaseId = product.firebaseId,
-                                        productName = product.name,
-                                        category = product.category,
+                                        productName = product.name ?: "",
+                                        category = product.category ?: "",
                                         quantity = quantity,
                                         reason = reason,
                                         wasteDate = currentDate,
@@ -156,7 +156,7 @@ fun WasteMarkingScreen(
 
                                     // Deduct from Inventory B only
                                     val newInventoryB = (product.inventoryB - quantity).coerceAtLeast(0)
-                                    val newQuantity = product.inventoryA + newInventoryB
+                                    val newQuantity = (product.inventoryA ?: 0) + newInventoryB
 
                                     productViewModel.updateProduct(
                                         product.copy(
@@ -166,9 +166,9 @@ fun WasteMarkingScreen(
                                     )
 
                                     // Log audit
-                                    AuditHelper.logWaste(product.name, quantity)
+                                    AuditHelper.logWaste(product.name ?: "", quantity)
 
-                                    wasteSuccessMessage = "Marked $quantity units of ${product.name} as waste"
+                                    wasteSuccessMessage = "Marked $quantity units of ${product.name ?: ""} as waste"
                                     showSuccessDialog = true
                                 }
                             )
@@ -224,11 +224,12 @@ fun WasteProductCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Product Image
+            val imageModel: Any = product.imageUri ?: R.drawable.img
             Image(
                 painter = rememberAsyncImagePainter(
-                    model = product.imageUri.ifEmpty { R.drawable.img }
+                    model = imageModel
                 ),
-                contentDescription = product.name,
+                contentDescription = product.name ?: "",
                 modifier = Modifier
                     .size(70.dp)
                     .clip(RoundedCornerShape(8.dp)),
@@ -242,13 +243,13 @@ fun WasteProductCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    product.name,
+                    product.name ?: "",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color(0xFF8B4513)
                 )
                 Text(
-                    product.category,
+                    product.category ?: "",
                     fontSize = 13.sp,
                     color = Color.Gray
                 )
@@ -283,7 +284,7 @@ fun WasteProductCard(
             onDismissRequest = { showWasteDialog = false },
             title = {
                 Text(
-                    "Mark ${product.name} as Waste",
+                    "Mark ${product.name ?: ""} as Waste",
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFD32F2F)
                 )

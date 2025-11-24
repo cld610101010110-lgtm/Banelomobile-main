@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,11 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -42,13 +40,13 @@ fun EditProductScreen(
     viewModel3: ProductViewModel,
     productToEdit: Entity_Products
 ) {
-    // ✅ Use simple remember without keys
+    // State holders
     var name by remember { mutableStateOf(TextFieldValue("")) }
     var category by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf(TextFieldValue("")) }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUri by remember { mutableStateOf(TextFieldValue("")) } // stores the URL/text value
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }   // stores newly picked image Uri
 
     // Dropdown state
     var expandedCategory by remember { mutableStateOf(false) }
@@ -57,7 +55,7 @@ fun EditProductScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // ✅ Update states when product changes
+    // Update states when product changes (defensive: handle nullable imageUri)
     LaunchedEffect(productToEdit.firebaseId) {
         android.util.Log.d("EditProductScreen", "Loading product: ${productToEdit.name}")
         android.util.Log.d("EditProductScreen", "Product firebaseId: ${productToEdit.firebaseId}")
@@ -67,7 +65,7 @@ fun EditProductScreen(
         category = productToEdit.category
         price = productToEdit.price.toString()
         quantity = productToEdit.quantity.toString()
-        imageUri = TextFieldValue(productToEdit.imageUri)
+        imageUri = TextFieldValue(productToEdit.imageUri ?: "") // avoid passing null
         selectedImageUri = null
     }
 
@@ -136,25 +134,25 @@ fun EditProductScreen(
                                 .clickable { imagePickerLauncher.launch("image/*") },
                             contentAlignment = Alignment.Center
                         ) {
-                            val imageModel = if (selectedImageUri != null) {
-                                selectedImageUri  // Show newly selected image
-                            } else {
-                                imageUri.text     // Show existing Firebase URL
-                            }
+                            // Normalize image model to a String for the painter
+                            val imageModel: String = selectedImageUri?.toString() ?: imageUri.text
 
-                            // ✅ Log what we're trying to load
+                            // Log what we're trying to load
                             LaunchedEffect(imageModel) {
                                 android.util.Log.d("EditProductScreen", "Attempting to load image: $imageModel")
                             }
 
-                            if (imageUri.text.isNotEmpty()) {
+                            if (imageModel.isNotEmpty()) {
                                 Image(
                                     painter = rememberAsyncImagePainter(
                                         model = imageModel,
                                         error = painterResource(R.drawable.ic_launcher_foreground),
                                         placeholder = painterResource(R.drawable.ic_launcher_foreground),
                                         onError = { error ->
-                                            android.util.Log.e("EditProductScreen", "Image load failed: ${error.result.throwable.message}")
+                                            android.util.Log.e(
+                                                "EditProductScreen",
+                                                "Image load failed: ${error.result.throwable?.message}"
+                                            )
                                         }
                                     ),
                                     contentDescription = "Product Image",
@@ -265,14 +263,7 @@ fun EditProductScreen(
                         Button(
                             onClick = {
                                 // Determine which image URI to use
-                                val finalImageUri = if (selectedImageUri != null) {
-                                    // User selected a NEW image - use the URI directly (don't copy to internal storage)
-                                    // ProductRepository.update() will upload it to Firebase Storage
-                                    selectedImageUri.toString()
-                                } else {
-                                    // Keep existing Firebase URL
-                                    imageUri.text
-                                }
+                                val finalImageUri = selectedImageUri?.toString() ?: imageUri.text
 
                                 val updatedProduct = Entity_Products(
                                     id = productToEdit.id,
@@ -299,7 +290,7 @@ fun EditProductScreen(
                                 contentColor = Color.White
                             )
                         ) {
-                            Text("Save Changes")
+                            Text("Save Changes", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

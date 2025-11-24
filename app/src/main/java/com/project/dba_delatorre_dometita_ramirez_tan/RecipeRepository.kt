@@ -217,7 +217,7 @@ class RecipeRepository(
                         inventory_a = newInventoryA,
                         inventory_b = newInventoryB,
                         cost_per_unit = updatedProduct.costPerUnit,
-                        imageUri = updatedProduct.imageUri
+                        imageUri = updatedProduct.imageUri ?: "" // <-- safe non-null fallback
                     )
 
                     BaneloApiService.safeCall {

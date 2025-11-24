@@ -266,7 +266,7 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                         ) {
                                             // ✅ Add overlay for out of stock items
                                             Box {
-                                                if (product.imageUri.isNotEmpty()) {
+                                                if (product.imageUri.isNullOrEmpty()) {
                                                     Image(
                                                         painter = rememberAsyncImagePainter(
                                                             model = product.imageUri,

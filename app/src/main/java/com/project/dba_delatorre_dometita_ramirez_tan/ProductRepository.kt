@@ -12,11 +12,11 @@ class ProductRepository(
     private val tag = "ProductRepository"
 
     // ============ IMAGE UPLOAD (TO CLOUDINARY) ============
-
-    private suspend fun uploadImageToCloudinary(imageUri: String): String {
+    // Accept nullable imageUri and handle gracefully inside the function.
+    private suspend fun uploadImageToCloudinary(imageUri: String?): String {
         return try {
-            if (imageUri.isEmpty()) {
-                Log.w(tag, "⚠️ No image provided")
+            if (imageUri.isNullOrEmpty()) {
+                Log.w(tag, "⚠️ No image provided for upload")
                 return ""
             }
 
@@ -31,7 +31,7 @@ class ProductRepository(
             Log.d(tag, "🔗 Cloudinary URL: $downloadUrl")
             Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
 
-            downloadUrl
+            downloadUrl ?: ""
         } catch (e: Exception) {
             Log.e(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
             Log.e(tag, "❌ Cloudinary upload failed!")
@@ -41,10 +41,10 @@ class ProductRepository(
         }
     }
 
-    private suspend fun deleteImageFromCloudinary(imageUrl: String): Boolean {
+    private suspend fun deleteImageFromCloudinary(imageUrl: String?): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                if (imageUrl.isEmpty()) {
+                if (imageUrl.isNullOrEmpty()) {
                     Log.d(tag, "⚠️ No image to delete")
                     return@withContext false
                 }
@@ -86,8 +86,8 @@ class ProductRepository(
             try {
                 Log.d(tag, "➕ Inserting product: ${product.name}")
 
-                // Step 1: Upload image if exists
-                val cloudinaryImageUrl = if (product.imageUri.isNotEmpty()) {
+                // Step 1: Upload image if exists (only when non-null & non-empty)
+                val cloudinaryImageUrl = if (!product.imageUri.isNullOrEmpty()) {
                     uploadImageToCloudinary(product.imageUri)
                 } else {
                     ""
@@ -207,17 +207,31 @@ class ProductRepository(
                 Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
                 Log.d(tag, "✏️ Updating product: ${product.name}")
 
-                // Handle image upload if needed
+                // Handle image upload if needed (null-safe)
                 val cloudinaryImageUrl = when {
-                    product.imageUri.isEmpty() -> ""
-                    product.imageUri.startsWith("https://res.cloudinary.com") -> product.imageUri
-                    product.imageUri.startsWith("content://") ||
-                    product.imageUri.startsWith("file://") ||
-                    product.imageUri.contains("/data/user/") -> {
-                        Log.d(tag, "🆕 Local image detected - uploading...")
-                        uploadImageToCloudinary(product.imageUri)
+                    product.imageUri.isNullOrEmpty() -> {
+                        // No image provided
+                        ""
                     }
-                    else -> product.imageUri
+                    product.imageUri!!.startsWith("https://res.cloudinary.com") -> {
+                        // Already a Cloudinary URL — keep it
+                        product.imageUri
+                    }
+                    product.imageUri!!.startsWith("content://") ||
+                            product.imageUri!!.startsWith("file://") ||
+                            product.imageUri!!.contains("/data/user/") -> {
+                        Log.d(tag, "🆕 Local image detected - uploading...")
+                        try {
+                            uploadImageToCloudinary(product.imageUri)
+                        } catch (e: Exception) {
+                            Log.e(tag, "❌ Image upload failed during update: ${e.message}", e)
+                            ""
+                        }
+                    }
+                    else -> {
+                        // Some other external URL — keep it
+                        product.imageUri
+                    }
                 }
 
                 val request = ProductRequest(
@@ -254,10 +268,14 @@ class ProductRepository(
             try {
                 Log.d(tag, "🗑️ Deleting product: ${product.name}")
 
-                // Delete image from Cloudinary first
-                if (product.imageUri.isNotEmpty()) {
+                // Delete image from Cloudinary first (only if present)
+                if (!product.imageUri.isNullOrEmpty()) {
                     Log.d(tag, "🖼️ Deleting product image...")
-                    deleteImageFromCloudinary(product.imageUri)
+                    try {
+                        deleteImageFromCloudinary(product.imageUri)
+                    } catch (e: Exception) {
+                        Log.e(tag, "❌ Failed to delete image during product delete: ${e.message}", e)
+                    }
                 }
 
                 // Delete from API
@@ -340,7 +358,7 @@ class ProductRepository(
                     inventory_a = updatedProduct.inventoryA,
                     inventory_b = updatedProduct.inventoryB,
                     cost_per_unit = updatedProduct.costPerUnit,
-                    imageUri = updatedProduct.imageUri
+                    imageUri = updatedProduct.imageUri ?: ""
                 )
 
                 BaneloApiService.safeCall {
@@ -407,7 +425,7 @@ class ProductRepository(
                     inventory_a = newInventoryA,
                     inventory_b = newInventoryB,
                     cost_per_unit = updatedProduct.costPerUnit,
-                    imageUri = updatedProduct.imageUri
+                    imageUri = updatedProduct.imageUri ?: ""
                 )
 
                 val result = BaneloApiService.safeCall {
@@ -481,15 +499,15 @@ class ProductRepository(
 
     private fun convertToEntity(response: ProductResponse): Entity_Products {
         return Entity_Products(
-            firebaseId = response.firebaseId ?: "",  // Use empty string if null
-            name = response.name,
-            category = response.category,
-            price = response.price,
-            quantity = response.quantity,
-            inventoryA = response.inventory_a,
-            inventoryB = response.inventory_b,
-            costPerUnit = response.cost_per_unit,
-            imageUri = response.imageUri
+            firebaseId = response.firebaseId ?: "",
+            name = response.name ?: "",
+            category = response.category ?: "",
+            price = response.price ?: 0.0,
+            quantity = response.quantity ?: 0,
+            inventoryA = response.inventory_a ?: 0,
+            inventoryB = response.inventory_b ?: 0,
+            costPerUnit = response.cost_per_unit ?: 0.0,
+            imageUri = response.imageUri // nullable allowed
         )
     }
 }

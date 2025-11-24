@@ -90,7 +90,7 @@ class PostgreSQL_ProductRepository(
             Log.d("ProductRepo", "➕ Inserting product: ${product.name}")
 
             // Upload image to Cloudinary if exists (keep your existing image upload logic)
-            val cloudinaryImageUrl = if (product.imageUri.isNotEmpty()) {
+            val cloudinaryImageUrl = if (product.imageUri.isNullOrEmpty()) {
                 uploadImageToCloudinary(product.imageUri)
             } else {
                 ""
@@ -189,7 +189,7 @@ class PostgreSQL_ProductRepository(
             Log.d("ProductRepo", "🗑️ Deleting product: ${product.name}")
 
             // Delete image from Cloudinary if exists
-            if (product.imageUri.isNotEmpty()) {
+            if (product.imageUri.isNullOrEmpty()) {
                 deleteImageFromCloudinary(product.imageUri)
             }
 
