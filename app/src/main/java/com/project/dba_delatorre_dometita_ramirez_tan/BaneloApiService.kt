@@ -8,6 +8,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.google.gson.annotations.SerializedName
 
 // ============ DATA CLASSES (for API requests/responses) ============
 
@@ -61,12 +62,49 @@ data class UserResponse(
 )
 
 data class RecipeResponse(
-    val firebaseId: String,
-    val productFirebaseId: String,
-    val productName: String
+    @SerializedName("id")
+    val id: String?,
+
+    @SerializedName("firebase_id")
+    val firebaseId: String?,
+
+    @SerializedName("recipe_id")
+    val recipeId: Int?,
+
+    @SerializedName("product_firebase_id")
+    val productFirebaseId: String?,
+
+    @SerializedName("product_name")
+    val productName: String?,
+
+    @SerializedName("instructions")
+    val instructions: String?,
+
+    @SerializedName("prep_time_minutes")
+    val prepTimeMinutes: Int?,
+
+    @SerializedName("cook_time_minutes")
+    val cookTimeMinutes: Int?,
+
+    @SerializedName("servings")
+    val servings: Int?,
+
+    @SerializedName("created_at")
+    val createdAt: String?,
+
+    @SerializedName("updated_at")
+    val updatedAt: String?,
+
+    @SerializedName("ingredients")
+    val ingredients: List<IngredientResponse>?
 )
 
-data class RecipeIngredientResponse(
+data class RecipesApiResponse(
+    val success: Boolean,
+    val data: List<RecipeResponse>?
+)
+
+data class IngredientResponse(
     val firebaseId: String,
     val ingredientFirebaseId: String,
     val ingredientName: String,

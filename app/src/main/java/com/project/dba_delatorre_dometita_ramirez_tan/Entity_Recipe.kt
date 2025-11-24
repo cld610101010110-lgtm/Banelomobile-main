@@ -5,8 +5,12 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "recipes")
 data class Entity_Recipe(
-    @PrimaryKey(autoGenerate = true) val recipeId: Int = 0,
-    val firebaseId: String = "",
-    val productFirebaseId: String = "",
-    val productName: String
+    @PrimaryKey(autoGenerate = true)
+    val recipeId: Int = 0,
+
+    val firebaseId: String? = "",
+
+    val productFirebaseId: String? = "",
+
+    val productName: String? = ""
 )

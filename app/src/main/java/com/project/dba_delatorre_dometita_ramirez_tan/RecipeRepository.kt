@@ -21,20 +21,22 @@ class RecipeRepository(
             try {
                 Log.d(TAG, "🔄 Starting recipe sync from API...")
 
-                // Fetch recipes from API
                 val recipesResult = BaneloApiService.safeCall {
                     BaneloApiService.api.getAllRecipes()
                 }
 
                 if (recipesResult.isSuccess) {
-                    val recipes = recipesResult.getOrNull() ?: return@withContext Result.success(Unit)
+                    val apiResponse = recipesResult.getOrNull()
+                    val recipes = apiResponse?.data ?: return@withContext Result.success(Unit)
+
                     Log.d(TAG, "📋 Fetched ${recipes.size} recipes")
 
                     val recipesList = recipes.map { r ->
                         Entity_Recipe(
-                            firebaseId = r.firebaseId,
-                            productFirebaseId = r.productFirebaseId,
-                            productName = r.productName
+                            recipeId = 0,
+                            firebaseId = r.firebaseId ?: "",
+                            productFirebaseId = r.productFirebaseId ?: "",
+                            productName = r.productName ?: ""
                         )
                     }
 
@@ -86,10 +88,15 @@ class RecipeRepository(
             Log.d(TAG, "🧮 Calculating max servings...")
             Log.d(TAG, "Product Firebase ID: $productFirebaseId")
 
+            if (productFirebaseId.isBlank()) {
+                Log.w(TAG, "❌ Product Firebase ID is blank! Cannot find recipe.")
+                return 0
+            }
+
             val recipe = daoRecipe.getRecipeByProductFirebaseId(productFirebaseId)
 
             if (recipe == null) {
-                Log.w(TAG, "❌ NO RECIPE FOUND!")
+                Log.w(TAG, "❌ NO RECIPE FOUND IN ROOM!")
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
                 return 0
             }
@@ -181,7 +188,6 @@ class RecipeRepository(
                     var newInventoryA = product.inventoryA
                     var newInventoryB = product.inventoryB
 
-                    // Deduct from Inventory B first
                     if (newInventoryB > 0) {
                         val deductFromB = minOf(remainingToDeduct, newInventoryB)
                         newInventoryB -= deductFromB
@@ -189,7 +195,6 @@ class RecipeRepository(
                         Log.d(TAG, "     Deducted $deductFromB from Inventory B")
                     }
 
-                    // If still need more, deduct from Inventory A
                     if (remainingToDeduct > 0 && newInventoryA > 0) {
                         val deductFromA = minOf(remainingToDeduct, newInventoryA)
                         newInventoryA -= deductFromA
@@ -200,7 +205,6 @@ class RecipeRepository(
                     val newQuantity = newInventoryA + newInventoryB
                     Log.d(TAG, "     After - Inventory A: $newInventoryA, Inventory B: $newInventoryB, Total: $newQuantity")
 
-                    // Update Room
                     val updatedProduct = product.copy(
                         quantity = newQuantity,
                         inventoryA = newInventoryA,
@@ -208,7 +212,6 @@ class RecipeRepository(
                     )
                     daoProducts.updateProduct(updatedProduct)
 
-                    // Update API
                     val request = ProductRequest(
                         name = updatedProduct.name,
                         category = updatedProduct.category,
@@ -217,7 +220,7 @@ class RecipeRepository(
                         inventory_a = newInventoryA,
                         inventory_b = newInventoryB,
                         cost_per_unit = updatedProduct.costPerUnit,
-                        imageUri = updatedProduct.imageUri ?: "" // <-- safe non-null fallback
+                        imageUri = updatedProduct.imageUri ?: ""
                     )
 
                     BaneloApiService.safeCall {
@@ -226,7 +229,6 @@ class RecipeRepository(
 
                     Log.d(TAG, "     ✅ Updated in Room and API")
 
-                    // Save ingredient deduction to sales table
                     val ingredientSale = Entity_SalesReport(
                         productName = product.name,
                         category = product.category,
