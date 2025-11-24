@@ -56,15 +56,20 @@ class RecipeRepository(
                         // Insert ingredients for this recipe
                         val ingredients = apiRecipe.ingredients ?: emptyList()
                         if (ingredients.isNotEmpty()) {
-                            val ingredientEntities = ingredients.map { ing ->
+                            // Filter out ingredients with missing required fields
+                            val validIngredients = ingredients.filter { ing ->
+                                !ing.ingredientFirebaseId.isNullOrBlank() && !ing.ingredientName.isNullOrBlank()
+                            }
+
+                            val ingredientEntities = validIngredients.map { ing ->
                                 Entity_RecipeIngredient(
                                     id = 0, // Let Room auto-generate
-                                    firebaseId = ing.firebaseId,
+                                    firebaseId = ing.firebaseId ?: "",
                                     recipeId = recipeId.toInt(),
-                                    ingredientFirebaseId = ing.ingredientFirebaseId,
-                                    ingredientName = ing.ingredientName,
-                                    quantityNeeded = ing.quantityNeeded,
-                                    unit = ing.unit
+                                    ingredientFirebaseId = ing.ingredientFirebaseId ?: "",
+                                    ingredientName = ing.ingredientName ?: "",
+                                    quantityNeeded = ing.quantityNeeded ?: 0.0,
+                                    unit = ing.unit ?: "g"
                                 )
                             }
 
