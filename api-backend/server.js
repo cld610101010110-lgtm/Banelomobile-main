@@ -419,7 +419,7 @@ app.post('/api/sales/process', async (req, res) => {
 
             let inventoryA = ingredient.inventory_a;
             let inventoryB = ingredient.inventory_b;
-            let remaining = Math.floor(totalNeeded);
+            let remaining = Math.ceil(totalNeeded); // ✅ FIX: Use Math.ceil to round up, preventing 0 deductions
 
             // Deduct from B first
             if (inventoryB > 0) {
