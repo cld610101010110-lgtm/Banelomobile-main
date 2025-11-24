@@ -76,7 +76,7 @@ class WasteLogRepository(private val dao: Dao_WasteLog) {
 
     // ============ FETCH FROM API (OPTIMIZED) ============
 
-    suspend fun syncFromFirebase() {
+    suspend fun syncFromApi() {
         withContext(Dispatchers.IO) {
             try {
                 Log.d("WasteLogRepo", "📡 Fetching waste logs from API...")

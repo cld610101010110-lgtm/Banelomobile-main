@@ -23,15 +23,15 @@ class WasteLogViewModel(
         syncAndLoadWasteLogs()
     }
 
-    // Sync from Firebase and load waste logs
+    // Sync from API and load waste logs
     fun syncAndLoadWasteLogs() {
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
 
             try {
-                // Sync from Firebase
-                repository.syncFromFirebase()
+                // Sync from API
+                repository.syncFromApi()
 
                 // Load from local database
                 wasteLogsList = repository.getAllWasteLogs()
@@ -93,7 +93,7 @@ class WasteLogViewModel(
         return repository.getTotalWasteByDateRange(startDate, endDate)
     }
 
-    // Sync unsynced logs to Firebase
+    // Sync unsynced logs to API
     fun syncUnsyncedLogs() {
         viewModelScope.launch {
             try {

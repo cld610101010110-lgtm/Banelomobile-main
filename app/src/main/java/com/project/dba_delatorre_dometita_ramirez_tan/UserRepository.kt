@@ -15,7 +15,7 @@ class UserRepository(
 
     // ============ SYNC USERS FROM API ============
 
-    suspend fun syncUsersFromFirebase(): Result<Unit> {
+    suspend fun syncUsersFromApi(): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
