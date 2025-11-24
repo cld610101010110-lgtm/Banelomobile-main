@@ -19,8 +19,11 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
 
-        <!-- For physical device testing - add your computer's IP if needed -->
-        <!-- <domain includeSubdomains="true">192.168.1.100</domain> -->
+        <!-- For physical device testing - Local network IPs -->
+        <!-- Update these with your actual computer's IP -->
+        <domain includeSubdomains="true">192.168.1.0</domain>
+        <domain includeSubdomains="true">192.168.254.0</domain>
+        <domain includeSubdomains="true">10.0.0.0</domain>
     </domain-config>
 
     <!-- For production: Use HTTPS for all other domains -->
