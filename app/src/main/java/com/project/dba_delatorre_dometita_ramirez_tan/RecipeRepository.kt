@@ -259,11 +259,17 @@ class RecipeRepository(
                         imageUri = updatedProduct.imageUri ?: ""
                     )
 
-                    BaneloApiService.safeCall {
+                    val apiResult = BaneloApiService.safeCall {
                         BaneloApiService.api.updateProduct(product.firebaseId, request)
                     }
 
-                    Log.d(TAG, "     ✅ Updated in Room and API")
+                    // ✅ Check API result before logging success
+                    if (apiResult.isSuccess) {
+                        Log.d(TAG, "     ✅ Updated in Room and API")
+                    } else {
+                        Log.d(TAG, "     ✅ Updated in Room")
+                        Log.w(TAG, "     ⚠️ API sync failed: ${apiResult.exceptionOrNull()?.message}")
+                    }
 
                     val ingredientSale = Entity_SalesReport(
                         productName = product.name,

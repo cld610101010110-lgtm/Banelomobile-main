@@ -361,11 +361,18 @@ class ProductRepository(
                     imageUri = updatedProduct.imageUri ?: ""
                 )
 
-                BaneloApiService.safeCall {
+                val apiResult = BaneloApiService.safeCall {
                     BaneloApiService.api.updateProduct(productFirebaseId, request)
                 }
 
-                Log.d(tag, "✅ Stock deducted successfully")
+                // ✅ Log success for local operation and API sync status
+                Log.d(tag, "✅ Stock deducted successfully (local)")
+                if (apiResult.isSuccess) {
+                    Log.d(tag, "✅ API synced successfully")
+                } else {
+                    Log.w(tag, "⚠️ API sync failed: ${apiResult.exceptionOrNull()?.message}")
+                    Log.w(tag, "⚠️ Changes saved locally, will retry sync later")
+                }
                 Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
             } catch (e: Exception) {
                 Log.e(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
