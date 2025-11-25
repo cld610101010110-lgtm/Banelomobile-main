@@ -48,6 +48,24 @@ data class SalesRequest(
     val cashierUsername: String
 )
 
+data class SalesResponse(
+    @SerializedName("order_id")
+    val orderId: Int?,
+    @SerializedName("product_name")
+    val productName: String?,
+    val category: String?,
+    val quantity: Int?,
+    val price: Double?,
+    @SerializedName("order_date")
+    val orderDate: String?,
+    @SerializedName("product_firebase_id")
+    val productFirebaseId: String?,
+    @SerializedName("payment_mode")
+    val paymentMode: String?,
+    @SerializedName("gcash_reference_id")
+    val gcashReferenceId: String?
+)
+
 data class LoginRequest(
     val username: String,
     val password: String
@@ -145,7 +163,7 @@ interface BaneloApiInterface {
     suspend fun processSale(@Body sale: SalesRequest): ApiResponse<Any>
 
     @GET("api/sales")
-    suspend fun getAllSales(): ApiResponse<List<Any>>
+    suspend fun getAllSales(): ApiResponse<List<SalesResponse>>
 
     // USERS
     @POST("api/users/login")

@@ -35,19 +35,38 @@ class SalesReportViewModel(
         syncAndLoadSales()
     }
 
-    // Load sales from local database (sales are synced via API during transactions)
+    // ✅ Sync sales from PostgreSQL API and load into local database
     fun syncAndLoadSales() {
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
 
             try {
-                // Sales are automatically synced in real-time via API during transactions
-                // Just load from local database
-                getAllSales()
-                filterByPeriod("Week") // Default to Week view
+                android.util.Log.d("SalesViewModel", "🔄 Syncing sales from PostgreSQL API...")
+
+                // Fetch sales from PostgreSQL API and cache in Room
+                val syncResult = repository.syncSalesFromApi()
+
+                if (syncResult.isSuccess) {
+                    android.util.Log.d("SalesViewModel", "✅ Sales synced successfully")
+                    getAllSales()
+                    filterByPeriod("Week") // Default to Week view
+                } else {
+                    val error = syncResult.exceptionOrNull()?.message ?: "Unknown error"
+                    android.util.Log.e("SalesViewModel", "❌ Sync failed: $error")
+                    errorMessage = "Failed to sync sales: $error"
+
+                    // Try to load from local cache as fallback
+                    getAllSales()
+                    filterByPeriod("Week")
+                }
             } catch (e: Exception) {
+                android.util.Log.e("SalesViewModel", "❌ Error: ${e.message}", e)
                 errorMessage = "Failed to load sales: ${e.message}"
+
+                // Try to load from local cache as fallback
+                getAllSales()
+                filterByPeriod("Week")
             }
 
             isLoading = false
