@@ -130,6 +130,16 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
     // ✅ FIX: Store available quantities in state (outside of map)
     var availableQuantities by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
+    // ✅ FIX: Force FULL data refresh when screen loads - fixes inconsistent availability
+    LaunchedEffect(Unit) {
+        android.util.Log.d("OrderProcess", "🔄 Force refreshing data on screen entry...")
+        viewModel3.getAllProducts() // Refresh from API
+        recipeViewModel.fetchAllRecipes() // Refresh recipes
+        kotlinx.coroutines.delay(600) // Wait for data
+        refreshTrigger++ // Trigger recalculation
+        android.util.Log.d("OrderProcess", "✅ Force refresh complete")
+    }
+
     // ✅ Calculate available quantities for recipe-based products (Beverages and Pastries)
     LaunchedEffect(viewModel3.productList, refreshTrigger) {
         val quantities = mutableMapOf<String, Int>()
@@ -753,6 +763,20 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                             // ✅ FIX: Log sale to audit trail
                                             val totalPrice = product.price * quantity
                                             AuditHelper.logSale(product.name, quantity, totalPrice)
+
+                                            // ✅ FIX: Save sale to local Room database for Overview page
+                                            val saleEntity = Entity_SalesReport(
+                                                productName = product.name,
+                                                category = product.category,
+                                                quantitySold = quantity,
+                                                totalPrice = totalPrice,
+                                                paymentMode = paymentMode,
+                                                gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else "",
+                                                orderDate = currentDate
+                                            )
+                                            viewModel2.insertSale(saleEntity)
+
+                                            android.util.Log.d("OrderProcess", "✅ Sale saved to Room database for Overview")
                                         } else {
                                             scope.launch {
                                                 snackbarHostState.showSnackbar(
