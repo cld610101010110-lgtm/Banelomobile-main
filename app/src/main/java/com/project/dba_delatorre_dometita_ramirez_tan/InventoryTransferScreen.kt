@@ -107,7 +107,13 @@ fun InventoryTransferScreen(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(productViewModel.productList.filter { it.inventoryA > 0 }) { product ->
+                    // ✅ FIX: Show all ingredients (category = "Ingredients") regardless of inventoryA
+                    // Or show products where inventoryA > 0
+                    val transferableProducts = productViewModel.productList.filter {
+                        it.category.equals("Ingredients", ignoreCase = true) || it.inventoryA > 0
+                    }
+
+                    items(transferableProducts) { product ->
                         TransferProductCard(
                             product = product,
                             onTransfer = { quantity ->
