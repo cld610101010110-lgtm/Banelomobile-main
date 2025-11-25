@@ -227,12 +227,18 @@ app.post('/api/products', async (req, res) => {
     const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, sku } = req.body;
 
     try {
+        // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
+        const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
+        const finalQuantity = isRecipeBased ? 0 : quantity;
+        const finalInventoryA = isRecipeBased ? 0 : inventory_a;
+        const finalInventoryB = isRecipeBased ? 0 : inventory_b;
+
         const result = await pool.query(
             `INSERT INTO products (name, category, price, quantity, inventory_a, inventory_b,
                                   cost_per_unit, image_uri, description, sku, is_active)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
              RETURNING *`,
-            [name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, sku]
+            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, sku]
         );
 
         res.json({ success: true, data: result.rows[0] });
@@ -248,6 +254,12 @@ app.put('/api/products/:firebaseId', async (req, res) => {
     const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description } = req.body;
 
     try {
+        // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
+        const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
+        const finalQuantity = isRecipeBased ? 0 : quantity;
+        const finalInventoryA = isRecipeBased ? 0 : inventory_a;
+        const finalInventoryB = isRecipeBased ? 0 : inventory_b;
+
         const result = await pool.query(
             `UPDATE products
              SET name = $1, category = $2, price = $3, quantity = $4,
@@ -255,7 +267,7 @@ app.put('/api/products/:firebaseId', async (req, res) => {
                  image_uri = $8, description = $9, updated_at = CURRENT_TIMESTAMP
              WHERE firebase_id = $10
              RETURNING *`,
-            [name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, firebaseId]
+            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, firebaseId]
         );
 
         res.json({ success: true, data: result.rows[0] });
