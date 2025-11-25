@@ -501,11 +501,13 @@ app.post('/api/sales/process', async (req, res) => {
         console.log('✅ Transaction committed successfully');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━');
 
+        // ✅ FIX: Return 'data' field to match ApiResponse<T> structure
         res.json({
             success: true,
-            message: 'Sale processed - ingredients deducted',
-            sale: saleResult.rows[0],
-            ingredientsDeducted: ingredients.length
+            data: {
+                sale: saleResult.rows[0],
+                ingredientsDeducted: ingredients.length
+            }
         });
 
     } catch (error) {
