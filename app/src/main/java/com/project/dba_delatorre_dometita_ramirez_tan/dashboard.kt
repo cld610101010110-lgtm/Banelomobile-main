@@ -55,6 +55,17 @@ fun dashboard(navController: NavController, viewModel: SalesReportViewModel) {
     val BackgroundCoffee = Color(0xFFFFF8F0)
     val Latte = Color(0xFFF5E6DA)
 
+    // ✅ FIX: Refresh sales data when dashboard is opened
+    LaunchedEffect(Unit) {
+        android.util.Log.d("Dashboard", "🔄 Refreshing sales data...")
+        viewModel.syncAndLoadSales()
+        viewModel.filterByPeriod(selectedFilter)
+        android.util.Log.d("Dashboard", "✅ Sales data refreshed")
+        android.util.Log.d("Dashboard", "   Total Sales: ${viewModel.totalRevenue}")
+        android.util.Log.d("Dashboard", "   Total Sold: ${viewModel.totalSold}")
+        android.util.Log.d("Dashboard", "   Top Sales Count: ${viewModel.topSales.value.size}")
+    }
+
 
     Box(
         modifier = Modifier

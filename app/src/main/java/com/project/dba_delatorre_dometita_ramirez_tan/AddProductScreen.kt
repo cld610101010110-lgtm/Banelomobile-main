@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,12 +63,33 @@ fun AddProductScreen(
 
     val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var savedImagePath by remember { mutableStateOf<String?>(null) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        selectedImageUri = uri
-        imageError = false
+        uri?.let {
+            try {
+                // Copy image to internal storage
+                val inputStream = context.contentResolver.openInputStream(it)
+                val fileName = "product_${System.currentTimeMillis()}.jpg"
+                val file = File(context.filesDir, fileName)
+
+                inputStream?.use { input ->
+                    FileOutputStream(file).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                savedImagePath = file.absolutePath
+                selectedImageUri = uri
+                imageError = false
+                android.util.Log.d("AddProductScreen", "✅ Image saved to: ${file.absolutePath}")
+            } catch (e: Exception) {
+                android.util.Log.e("AddProductScreen", "❌ Error saving image: ${e.message}")
+                imageError = true
+            }
+        }
     }
 
     Scaffold(
@@ -260,7 +283,7 @@ fun AddProductScreen(
 
                                     if (isValid) {
                                         android.util.Log.d("AddProductScreen", "🆕 Creating new product...")
-                                        android.util.Log.d("AddProductScreen", "Selected image URI: $selectedImageUri")
+                                        android.util.Log.d("AddProductScreen", "Saved image path: $savedImagePath")
 
                                         val qty = productQuantity.toInt()
                                         viewModel3.insertProduct(
@@ -271,7 +294,7 @@ fun AddProductScreen(
                                                 quantity = qty,
                                                 inventoryA = qty, // All new stock goes to Inventory A (warehouse)
                                                 inventoryB = 0,   // Inventory B starts empty (transfer later)
-                                                imageUri = selectedImageUri.toString()
+                                                imageUri = savedImagePath // Use saved file path instead of content:// URI
                                             )
                                         )
                                         // ✅ ADD THIS - Log product addition to audit trail

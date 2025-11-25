@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +49,7 @@ fun EditProductScreen(
     var quantity by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf(TextFieldValue("")) } // stores the URL/text value
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }   // stores newly picked image Uri
+    var savedImagePath by remember { mutableStateOf<String?>(null) }
 
     // Dropdown state
     var expandedCategory by remember { mutableStateOf(false) }
@@ -66,6 +69,7 @@ fun EditProductScreen(
         price = productToEdit.price.toString()
         quantity = productToEdit.quantity.toString()
         imageUri = TextFieldValue(productToEdit.imageUri ?: "") // avoid passing null
+        savedImagePath = productToEdit.imageUri // Set existing path
         selectedImageUri = null
     }
 
@@ -73,9 +77,25 @@ fun EditProductScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            selectedImageUri = it
-            imageUri = TextFieldValue(it.toString())
-            android.util.Log.d("EditProductScreen", "New image selected: $it")
+            try {
+                // Copy image to internal storage
+                val inputStream = context.contentResolver.openInputStream(it)
+                val fileName = "product_${System.currentTimeMillis()}.jpg"
+                val file = File(context.filesDir, fileName)
+
+                inputStream?.use { input ->
+                    FileOutputStream(file).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                savedImagePath = file.absolutePath
+                selectedImageUri = it
+                imageUri = TextFieldValue(file.absolutePath)
+                android.util.Log.d("EditProductScreen", "✅ Image saved to: ${file.absolutePath}")
+            } catch (e: Exception) {
+                android.util.Log.e("EditProductScreen", "❌ Error saving image: ${e.message}")
+            }
         }
     }
 
@@ -134,15 +154,17 @@ fun EditProductScreen(
                                 .clickable { imagePickerLauncher.launch("image/*") },
                             contentAlignment = Alignment.Center
                         ) {
-                            // Normalize image model to a String for the painter
-                            val imageModel: String = selectedImageUri?.toString() ?: imageUri.text
+                            // ✅ Use savedImagePath for displaying image
+                            val imageModel: Any? = savedImagePath?.let {
+                                if (it.startsWith("/")) File(it) else it
+                            }
 
                             // Log what we're trying to load
                             LaunchedEffect(imageModel) {
                                 android.util.Log.d("EditProductScreen", "Attempting to load image: $imageModel")
                             }
 
-                            if (imageModel.isNotEmpty()) {
+                            if (imageModel != null) {
                                 Image(
                                     painter = rememberAsyncImagePainter(
                                         model = imageModel,
@@ -262,8 +284,8 @@ fun EditProductScreen(
 
                         Button(
                             onClick = {
-                                // Determine which image URI to use
-                                val finalImageUri = selectedImageUri?.toString() ?: imageUri.text
+                                // ✅ Use savedImagePath instead of content:// URI
+                                val finalImageUri = savedImagePath ?: productToEdit.imageUri
 
                                 // ✅ FIX: When adding quantity to ingredients, it should go to Inventory A
                                 val isIngredient = category.equals("Ingredients", ignoreCase = true)

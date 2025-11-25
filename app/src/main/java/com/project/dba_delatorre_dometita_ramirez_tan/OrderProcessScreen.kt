@@ -38,6 +38,7 @@ import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -145,11 +146,11 @@ fun OrderProcessScreen(
         android.util.Log.d("OrderProcess", "✅ Force refresh complete")
     }
 
-    // ✅ Calculate available quantities for recipe-based products (Beverages and Pastries)
+    // ✅ Calculate available quantities based on INVENTORY B for recipe-based products
     LaunchedEffect(viewModel3.productList, refreshTrigger) {
         val quantities = mutableMapOf<String, Int>()
 
-        // Calculate for recipe-based products (Beverages and Pastries)
+        // ✅ Calculate for recipe-based products (Beverages and Pastries) using INVENTORY B ONLY
         viewModel3.productList
             .filter {
                 it.category.equals("Beverages", ignoreCase = true) ||
@@ -159,16 +160,17 @@ fun OrderProcessScreen(
             }
             .forEach { product ->
                 try {
-                    val maxServings = recipeViewModel.getAvailableQuantity(product.firebaseId)
+                    // ✅ KEY CHANGE: Use getAvailableQuantityFromInventoryB instead of getAvailableQuantity
+                    val maxServings = recipeViewModel.getAvailableQuantityFromInventoryB(product.firebaseId)
                     quantities[product.firebaseId] = maxServings
-                    android.util.Log.d("OrderProcess", "🧮 ${product.name} (${product.category}): $maxServings servings available")
+                    android.util.Log.d("OrderProcess", "🧮 ${product.name} (${product.category}): $maxServings servings available (Inventory B)")
                 } catch (e: Exception) {
                     android.util.Log.e("OrderProcess", "❌ Error calculating servings for ${product.name}: ${e.message}")
                     quantities[product.firebaseId] = 0
                 }
             }
 
-        // For non-recipe products (e.g., Snacks), use direct stock quantity
+        // For non-recipe products (e.g., Snacks), use inventoryB quantity
         viewModel3.productList
             .filter {
                 !it.category.equals("Ingredients", ignoreCase = true) &&
@@ -176,8 +178,9 @@ fun OrderProcessScreen(
                 !it.category.equals("Pastries", ignoreCase = true)
             }
             .forEach { product ->
-                quantities[product.firebaseId] = product.quantity
-                android.util.Log.d("OrderProcess", "📦 ${product.name} (${product.category}): Stock = ${product.quantity}")
+                // ✅ KEY CHANGE: Use inventoryB instead of total quantity
+                quantities[product.firebaseId] = product.inventoryB
+                android.util.Log.d("OrderProcess", "📦 ${product.name} (${product.category}): Inventory B = ${product.inventoryB}")
             }
 
         availableQuantities = quantities
@@ -336,10 +339,16 @@ fun OrderProcessScreen(
                                             // ✅ Add overlay for out of stock items
                                             Box {
                                                 if (!product.imageUri.isNullOrEmpty()) {
-                                                    // ✅ FIX: Show image when URI exists (logic was backwards!)
+                                                    // ✅ Load image from file path or URI
+                                                    val imageModel: Any = if (product.imageUri.startsWith("/")) {
+                                                        File(product.imageUri)
+                                                    } else {
+                                                        product.imageUri
+                                                    }
+
                                                     Image(
                                                         painter = rememberAsyncImagePainter(
-                                                            model = product.imageUri,
+                                                            model = imageModel,
                                                             error = painterResource(R.drawable.ic_launcher_foreground),
                                                             placeholder = painterResource(R.drawable.ic_launcher_foreground)
                                                         ),
