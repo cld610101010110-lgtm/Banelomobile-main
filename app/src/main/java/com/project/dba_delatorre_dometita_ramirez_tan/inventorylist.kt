@@ -323,11 +323,19 @@ fun InventoryListScreen(
                                     ) {
                                         if (!product.imageUri.isNullOrEmpty()) {
                                             // ✅ Load image from Cloudinary URL (Coil handles URLs directly)
+                                            android.util.Log.d("InventoryList", "📸 Loading image for ${product.name}: ${product.imageUri}")
                                             Image(
                                                 painter = rememberAsyncImagePainter(
                                                     model = product.imageUri,
                                                     error = painterResource(R.drawable.ic_launcher_foreground),
-                                                    placeholder = painterResource(R.drawable.ic_launcher_foreground)
+                                                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                                    onSuccess = {
+                                                        android.util.Log.d("InventoryList", "✅ Image loaded for ${product.name}")
+                                                    },
+                                                    onError = { error ->
+                                                        android.util.Log.e("InventoryList", "❌ Image load failed for ${product.name}: ${product.imageUri}")
+                                                        android.util.Log.e("InventoryList", "Error: ${error.result.throwable?.message}")
+                                                    }
                                                 ),
                                                 contentDescription = "Product Image",
                                                 modifier = Modifier
