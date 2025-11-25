@@ -323,10 +323,16 @@ fun InventoryListScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         if (!product.imageUri.isNullOrEmpty()) {
-                                            // ✅ FIX: Show image when URI exists (logic was backwards!)
+                                            // ✅ Load image from file path or URI
+                                            val imageModel: Any = if (product.imageUri.startsWith("/")) {
+                                                File(product.imageUri)
+                                            } else {
+                                                product.imageUri
+                                            }
+
                                             Image(
                                                 painter = rememberAsyncImagePainter(
-                                                    model = product.imageUri,
+                                                    model = imageModel,
                                                     error = painterResource(R.drawable.ic_launcher_foreground),
                                                     placeholder = painterResource(R.drawable.ic_launcher_foreground)
                                                 ),

@@ -118,10 +118,12 @@ class RecipeRepository(
 
     // ============ CALCULATE AVAILABLE QUANTITY ============
 
+    // ✅ Calculate max servings based on TOTAL stock (inventoryA + inventoryB)
+    // Used for: InventoryListScreen - to show overall available servings
     suspend fun calculateMaxServings(productFirebaseId: String): Int {
         return try {
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
-            Log.d(TAG, "🧮 Calculating max servings...")
+            Log.d(TAG, "🧮 Calculating max servings (TOTAL stock)...")
             Log.d(TAG, "Product Firebase ID: $productFirebaseId")
 
             if (productFirebaseId.isBlank()) {
@@ -157,16 +159,81 @@ class RecipeRepository(
                     return@map 0
                 }
 
-                val available = ingredientProduct.quantity.toDouble()
+                val available = ingredientProduct.quantity.toDouble() // Total: A + B
                 val needed = ingredient.quantityNeeded
                 val maxServings = if (needed > 0) (available / needed).toInt() else 0
 
-                Log.d(TAG, "  ${ingredient.ingredientName}: available=$available, needed=$needed, maxServings=$maxServings")
+                Log.d(TAG, "  ${ingredient.ingredientName}: total=$available, needed=$needed, maxServings=$maxServings")
                 maxServings
             }
 
             val result = maxServingsPerIngredient.minOrNull() ?: 0
-            Log.d(TAG, "🎯 RESULT: Can make $result servings")
+            Log.d(TAG, "🎯 RESULT: Can make $result servings (based on TOTAL stock)")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            result
+
+        } catch (e: Exception) {
+            Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.e(TAG, "❌ Error calculating servings!")
+            Log.e(TAG, "Error: ${e.message}", e)
+            Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
+            0
+        }
+    }
+
+    // ✅ NEW METHOD: Calculate max servings based ONLY on Inventory B
+    // Used for: OrderProcessScreen - customers can only order what's in display inventory
+    suspend fun calculateMaxServingsFromInventoryB(productFirebaseId: String): Int {
+        return try {
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🧮 Calculating max servings (INVENTORY B ONLY)...")
+            Log.d(TAG, "Product Firebase ID: $productFirebaseId")
+
+            if (productFirebaseId.isBlank()) {
+                Log.w(TAG, "❌ Product Firebase ID is blank! Cannot find recipe.")
+                return 0
+            }
+
+            val recipe = daoRecipe.getRecipeByProductFirebaseId(productFirebaseId)
+
+            if (recipe == null) {
+                Log.w(TAG, "❌ NO RECIPE FOUND IN ROOM!")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                return 0
+            }
+
+            Log.d(TAG, "✅ Recipe found: ${recipe.productName}")
+
+            val ingredients = daoRecipe.getIngredientsByRecipeId(recipe.recipeId)
+
+            if (ingredients.isEmpty()) {
+                Log.w(TAG, "❌ No ingredients found for this recipe!")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                return 0
+            }
+
+            Log.d(TAG, "📦 Found ${ingredients.size} ingredients:")
+
+            val maxServingsPerIngredient = ingredients.map { ingredient ->
+                val ingredientProduct = daoProducts.getProductByFirebaseId(ingredient.ingredientFirebaseId)
+
+                if (ingredientProduct == null) {
+                    Log.e(TAG, "     ❌ Product not found for ingredient: ${ingredient.ingredientName}")
+                    return@map 0
+                }
+
+                // ✅ KEY CHANGE: Use ONLY inventoryB instead of total quantity
+                val available = ingredientProduct.inventoryB.toDouble()
+                val needed = ingredient.quantityNeeded
+                val maxServings = if (needed > 0) (available / needed).toInt() else 0
+
+                Log.d(TAG, "  ${ingredient.ingredientName}: invB=$available, needed=$needed, maxServings=$maxServings")
+                maxServings
+            }
+
+            val result = maxServingsPerIngredient.minOrNull() ?: 0
+            Log.d(TAG, "🎯 RESULT: Can make $result servings (based on INVENTORY B ONLY)")
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
 
             result

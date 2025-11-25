@@ -42,9 +42,14 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
         }
     }
 
-    // Calculate how many servings can be made for a product
+    // Calculate how many servings can be made for a product (using TOTAL stock: inventoryA + inventoryB)
     suspend fun getAvailableQuantity(productFirebaseId: String): Int {
         return repository.calculateMaxServings(productFirebaseId)
+    }
+
+    // ✅ NEW METHOD: Calculate servings based ONLY on Inventory B
+    suspend fun getAvailableQuantityFromInventoryB(productFirebaseId: String): Int {
+        return repository.calculateMaxServingsFromInventoryB(productFirebaseId)
     }
 
     // Deduct ingredients when order is completed
