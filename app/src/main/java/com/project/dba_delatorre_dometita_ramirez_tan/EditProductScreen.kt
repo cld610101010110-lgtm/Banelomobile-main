@@ -265,17 +265,27 @@ fun EditProductScreen(
                                 // Determine which image URI to use
                                 val finalImageUri = selectedImageUri?.toString() ?: imageUri.text
 
+                                // ✅ FIX: When adding quantity to ingredients, it should go to Inventory A
+                                val isIngredient = category.equals("Ingredients", ignoreCase = true)
+                                val quantityValue = quantity.toIntOrNull() ?: 0
+
                                 val updatedProduct = Entity_Products(
                                     id = productToEdit.id,
                                     firebaseId = productToEdit.firebaseId,
                                     name = name.text,
                                     category = category,
                                     price = price.toDoubleOrNull() ?: 0.0,
-                                    quantity = quantity.toIntOrNull() ?: 0,
+                                    quantity = quantityValue,
+                                    // ✅ For ingredients: put stock in Inventory A, keep existing B
+                                    // For other products: keep existing inventory values
+                                    inventoryA = if (isIngredient) quantityValue else productToEdit.inventoryA,
+                                    inventoryB = productToEdit.inventoryB, // Keep existing B value
+                                    costPerUnit = productToEdit.costPerUnit,
                                     imageUri = finalImageUri
                                 )
 
                                 android.util.Log.d("EditProductScreen", "Saving product with imageUri: $finalImageUri")
+                                android.util.Log.d("EditProductScreen", "Inventory A: ${updatedProduct.inventoryA}, B: ${updatedProduct.inventoryB}")
                                 viewModel3.updateProduct(updatedProduct)
                                 AuditHelper.logProductEdit(name.text)
                                 android.util.Log.d("EditProductScreen", "✅ Audit trail logged for product edit")

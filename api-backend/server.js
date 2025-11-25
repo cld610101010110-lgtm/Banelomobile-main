@@ -256,9 +256,33 @@ app.put('/api/products/:firebaseId', async (req, res) => {
     try {
         // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
         const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
-        const finalQuantity = isRecipeBased ? 0 : quantity;
-        const finalInventoryA = isRecipeBased ? 0 : inventory_a;
-        const finalInventoryB = isRecipeBased ? 0 : inventory_b;
+        const isIngredient = category === 'Ingredients';
+
+        let finalQuantity, finalInventoryA, finalInventoryB;
+
+        if (isRecipeBased) {
+            // Recipe-based products: always 0 stock
+            finalQuantity = 0;
+            finalInventoryA = 0;
+            finalInventoryB = 0;
+        } else if (isIngredient) {
+            // ✅ FIX: For ingredients, auto-calculate inventory_a if not properly set
+            // If inventory_a + inventory_b doesn't match quantity, put all in inventory_a
+            if ((inventory_a + inventory_b) !== quantity && inventory_a === 0) {
+                finalInventoryA = quantity;
+                finalInventoryB = inventory_b;
+                finalQuantity = quantity;
+            } else {
+                finalInventoryA = inventory_a;
+                finalInventoryB = inventory_b;
+                finalQuantity = inventory_a + inventory_b; // Ensure consistency
+            }
+        } else {
+            // Other products: use as-is
+            finalQuantity = quantity;
+            finalInventoryA = inventory_a;
+            finalInventoryB = inventory_b;
+        }
 
         const result = await pool.query(
             `UPDATE products
