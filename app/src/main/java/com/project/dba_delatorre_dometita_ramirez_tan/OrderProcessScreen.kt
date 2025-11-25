@@ -38,7 +38,6 @@ import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -339,16 +338,10 @@ fun OrderProcessScreen(
                                             // ✅ Add overlay for out of stock items
                                             Box {
                                                 if (!product.imageUri.isNullOrEmpty()) {
-                                                    // ✅ Load image from file path or URI
-                                                    val imageModel: Any = if (product.imageUri.startsWith("/")) {
-                                                        File(product.imageUri)
-                                                    } else {
-                                                        product.imageUri
-                                                    }
-
+                                                    // ✅ Load image from Cloudinary URL (Coil handles URLs directly)
                                                     Image(
                                                         painter = rememberAsyncImagePainter(
-                                                            model = imageModel,
+                                                            model = product.imageUri,
                                                             error = painterResource(R.drawable.ic_launcher_foreground),
                                                             placeholder = painterResource(R.drawable.ic_launcher_foreground)
                                                         ),

@@ -31,8 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import java.io.File
-import java.io.FileOutputStream
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,38 +55,39 @@ fun AddProductScreen(
     var quantityError by remember { mutableStateOf(false) }
     var imageError by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
+    var isUploadingImage by remember { mutableStateOf(false) }
 
     // Dropdown state
     var expandedCategory by remember { mutableStateOf(false) }
     val categories = listOf("Ingredients", "Beverages", "Pastries")
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var savedImagePath by remember { mutableStateOf<String?>(null) }
+    var uploadedImageUrl by remember { mutableStateOf<String?>(null) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            try {
-                // Copy image to internal storage
-                val inputStream = context.contentResolver.openInputStream(it)
-                val fileName = "product_${System.currentTimeMillis()}.jpg"
-                val file = File(context.filesDir, fileName)
+            selectedImageUri = it
+            imageError = false
+            isUploadingImage = true
 
-                inputStream?.use { input ->
-                    FileOutputStream(file).use { output ->
-                        input.copyTo(output)
-                    }
+            // ✅ Upload to Cloudinary
+            scope.launch {
+                try {
+                    android.util.Log.d("AddProductScreen", "📤 Uploading image to Cloudinary...")
+                    val cloudinaryUrl = CloudinaryHelper.uploadImage(it)
+                    uploadedImageUrl = cloudinaryUrl
+                    isUploadingImage = false
+                    android.util.Log.d("AddProductScreen", "✅ Image uploaded successfully: $cloudinaryUrl")
+                } catch (e: Exception) {
+                    android.util.Log.e("AddProductScreen", "❌ Cloudinary upload failed: ${e.message}")
+                    imageError = true
+                    isUploadingImage = false
+                    selectedImageUri = null
                 }
-
-                savedImagePath = file.absolutePath
-                selectedImageUri = uri
-                imageError = false
-                android.util.Log.d("AddProductScreen", "✅ Image saved to: ${file.absolutePath}")
-            } catch (e: Exception) {
-                android.util.Log.e("AddProductScreen", "❌ Error saving image: ${e.message}")
-                imageError = true
             }
         }
     }
@@ -130,50 +130,75 @@ fun AddProductScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             // IMAGE SELECTION SECTION
-                            if (selectedImageUri != null) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(selectedImageUri),
-                                    contentDescription = "Selected Image",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(180.dp)
-                                        .padding(8.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(180.dp)
-                                        .padding(8.dp)
-                                        .background(
-                                            brush = Brush.verticalGradient(
-                                                colors = listOf(Color(0xFFE0C3A1), Color(0xFFB1785F))
-                                            ),
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                        .clickable { imagePickerLauncher.launch("image/*") },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
-                                            imageVector = Icons.Default.ShoppingCart,
-                                            contentDescription = "Product Icon",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Tap to choose image",
-                                            color = Color.White,
-                                            fontSize = 16.sp
-                                        )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .padding(8.dp)
+                            ) {
+                                if (uploadedImageUrl != null || selectedImageUri != null) {
+                                    // Show uploaded image or preview
+                                    Image(
+                                        painter = rememberAsyncImagePainter(uploadedImageUrl ?: selectedImageUri),
+                                        contentDescription = "Selected Image",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(180.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable { imagePickerLauncher.launch("image/*") },
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    // Show placeholder
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(180.dp)
+                                            .background(
+                                                brush = Brush.verticalGradient(
+                                                    colors = listOf(Color(0xFFE0C3A1), Color(0xFFB1785F))
+                                                ),
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable { imagePickerLauncher.launch("image/*") },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(
+                                                imageVector = Icons.Default.ShoppingCart,
+                                                contentDescription = "Product Icon",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(48.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                text = "Tap to choose image",
+                                                color = Color.White,
+                                                fontSize = 16.sp
+                                            )
+                                        }
                                     }
                                 }
 
-                                if (imageError) {
-                                    Text("Image is required", color = Color.Red, fontSize = 12.sp)
+                                // Show loading indicator while uploading
+                                if (isUploadingImage) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CircularProgressIndicator(color = Color.White)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text("Uploading...", color = Color.White, fontSize = 14.sp)
+                                        }
+                                    }
                                 }
+                            }
+
+                            if (imageError) {
+                                Text("Image is required", color = Color.Red, fontSize = 12.sp)
                             }
 
                             val textFieldModifier = Modifier
@@ -277,13 +302,13 @@ fun AddProductScreen(
                                     categoryError = productCategory.isBlank()
                                     priceError = productPrice.isBlank()
                                     quantityError = productQuantity.isBlank()
-                                    imageError = selectedImageUri == null
+                                    imageError = uploadedImageUrl == null
 
                                     val isValid = !(nameError || categoryError || priceError || quantityError || imageError)
 
                                     if (isValid) {
                                         android.util.Log.d("AddProductScreen", "🆕 Creating new product...")
-                                        android.util.Log.d("AddProductScreen", "Saved image path: $savedImagePath")
+                                        android.util.Log.d("AddProductScreen", "Cloudinary image URL: $uploadedImageUrl")
 
                                         val qty = productQuantity.toInt()
                                         viewModel3.insertProduct(
@@ -294,7 +319,7 @@ fun AddProductScreen(
                                                 quantity = qty,
                                                 inventoryA = qty, // All new stock goes to Inventory A (warehouse)
                                                 inventoryB = 0,   // Inventory B starts empty (transfer later)
-                                                imageUri = savedImagePath // Use saved file path instead of content:// URI
+                                                imageUri = uploadedImageUrl // ✅ Use Cloudinary URL
                                             )
                                         )
                                         // ✅ ADD THIS - Log product addition to audit trail
@@ -303,6 +328,7 @@ fun AddProductScreen(
                                         showDialog = true
                                     }
                                 },
+                                enabled = !isUploadingImage, // ✅ Disable while uploading
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF5D4037),
                                     contentColor = Color.White

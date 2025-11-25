@@ -32,8 +32,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,9 +45,10 @@ fun EditProductScreen(
     var category by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf(TextFieldValue("")) } // stores the URL/text value
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }   // stores newly picked image Uri
-    var savedImagePath by remember { mutableStateOf<String?>(null) }
+    var currentImageUrl by remember { mutableStateOf<String?>(null) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var uploadedImageUrl by remember { mutableStateOf<String?>(null) }
+    var isUploadingImage by remember { mutableStateOf(false) }
 
     // Dropdown state
     var expandedCategory by remember { mutableStateOf(false) }
@@ -58,7 +57,7 @@ fun EditProductScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Update states when product changes (defensive: handle nullable imageUri)
+    // Update states when product changes
     LaunchedEffect(productToEdit.firebaseId) {
         android.util.Log.d("EditProductScreen", "Loading product: ${productToEdit.name}")
         android.util.Log.d("EditProductScreen", "Product firebaseId: ${productToEdit.firebaseId}")
@@ -68,33 +67,31 @@ fun EditProductScreen(
         category = productToEdit.category
         price = productToEdit.price.toString()
         quantity = productToEdit.quantity.toString()
-        imageUri = TextFieldValue(productToEdit.imageUri ?: "") // avoid passing null
-        savedImagePath = productToEdit.imageUri // Set existing path
+        currentImageUrl = productToEdit.imageUri
         selectedImageUri = null
+        uploadedImageUrl = null
     }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            try {
-                // Copy image to internal storage
-                val inputStream = context.contentResolver.openInputStream(it)
-                val fileName = "product_${System.currentTimeMillis()}.jpg"
-                val file = File(context.filesDir, fileName)
+            selectedImageUri = it
+            isUploadingImage = true
 
-                inputStream?.use { input ->
-                    FileOutputStream(file).use { output ->
-                        input.copyTo(output)
-                    }
+            // ✅ Upload to Cloudinary
+            scope.launch {
+                try {
+                    android.util.Log.d("EditProductScreen", "📤 Uploading image to Cloudinary...")
+                    val cloudinaryUrl = CloudinaryHelper.uploadImage(it)
+                    uploadedImageUrl = cloudinaryUrl
+                    isUploadingImage = false
+                    android.util.Log.d("EditProductScreen", "✅ Image uploaded successfully: $cloudinaryUrl")
+                } catch (e: Exception) {
+                    android.util.Log.e("EditProductScreen", "❌ Cloudinary upload failed: ${e.message}")
+                    isUploadingImage = false
+                    selectedImageUri = null
                 }
-
-                savedImagePath = file.absolutePath
-                selectedImageUri = it
-                imageUri = TextFieldValue(file.absolutePath)
-                android.util.Log.d("EditProductScreen", "✅ Image saved to: ${file.absolutePath}")
-            } catch (e: Exception) {
-                android.util.Log.e("EditProductScreen", "❌ Error saving image: ${e.message}")
             }
         }
     }
@@ -150,49 +147,63 @@ fun EditProductScreen(
                                 .fillMaxWidth()
                                 .height(180.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(Color.LightGray)
-                                .clickable { imagePickerLauncher.launch("image/*") },
-                            contentAlignment = Alignment.Center
                         ) {
-                            // ✅ Use savedImagePath for displaying image
-                            val imageModel: Any? = savedImagePath?.let {
-                                if (it.startsWith("/")) File(it) else it
+                            // ✅ Display image: uploaded image > current image > placeholder
+                            val displayImageUrl = uploadedImageUrl ?: currentImageUrl
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.LightGray)
+                                    .clickable { imagePickerLauncher.launch("image/*") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (displayImageUrl != null && displayImageUrl.isNotEmpty()) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(
+                                            model = displayImageUrl,
+                                            error = painterResource(R.drawable.ic_launcher_foreground),
+                                            placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                            onError = { error ->
+                                                android.util.Log.e(
+                                                    "EditProductScreen",
+                                                    "Image load failed: ${error.result.throwable?.message}"
+                                                )
+                                            }
+                                        ),
+                                        contentDescription = "Product Image",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = "No Image\nTap to select",
+                                        fontSize = 14.sp,
+                                        color = Color.Gray,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
                             }
 
-                            // Log what we're trying to load
-                            LaunchedEffect(imageModel) {
-                                android.util.Log.d("EditProductScreen", "Attempting to load image: $imageModel")
-                            }
-
-                            if (imageModel != null) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(
-                                        model = imageModel,
-                                        error = painterResource(R.drawable.ic_launcher_foreground),
-                                        placeholder = painterResource(R.drawable.ic_launcher_foreground),
-                                        onError = { error ->
-                                            android.util.Log.e(
-                                                "EditProductScreen",
-                                                "Image load failed: ${error.result.throwable?.message}"
-                                            )
-                                        }
-                                    ),
-                                    contentDescription = "Product Image",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Text(
-                                    text = "No Image\nTap to select",
-                                    fontSize = 14.sp,
-                                    color = Color.Gray,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
+                            // Show loading indicator while uploading
+                            if (isUploadingImage) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.5f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator(color = Color.White)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text("Uploading...", color = Color.White, fontSize = 14.sp)
+                                    }
+                                }
                             }
                         }
 
                         Text(
-                            text = if (imageUri.text.isNotEmpty()) "Tap to change product image" else "Tap to add product image",
+                            text = if (displayImageUrl != null) "Tap to change product image" else "Tap to add product image",
                             fontSize = 12.sp,
                             color = Color(0xFF4B3832),
                             modifier = Modifier.padding(vertical = 8.dp)
@@ -284,8 +295,8 @@ fun EditProductScreen(
 
                         Button(
                             onClick = {
-                                // ✅ Use savedImagePath instead of content:// URI
-                                val finalImageUri = savedImagePath ?: productToEdit.imageUri
+                                // ✅ Use uploadedImageUrl if new image was uploaded, otherwise keep current
+                                val finalImageUri = uploadedImageUrl ?: currentImageUrl ?: ""
 
                                 // ✅ FIX: When adding quantity to ingredients, it should go to Inventory A
                                 val isIngredient = category.equals("Ingredients", ignoreCase = true)
@@ -303,7 +314,7 @@ fun EditProductScreen(
                                     inventoryA = if (isIngredient) quantityValue else productToEdit.inventoryA,
                                     inventoryB = productToEdit.inventoryB, // Keep existing B value
                                     costPerUnit = productToEdit.costPerUnit,
-                                    imageUri = finalImageUri
+                                    imageUri = finalImageUri // ✅ Use Cloudinary URL
                                 )
 
                                 android.util.Log.d("EditProductScreen", "Saving product with imageUri: $finalImageUri")
@@ -314,6 +325,7 @@ fun EditProductScreen(
 
                                 navController.popBackStack()
                             },
+                            enabled = !isUploadingImage, // ✅ Disable while uploading
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp),
