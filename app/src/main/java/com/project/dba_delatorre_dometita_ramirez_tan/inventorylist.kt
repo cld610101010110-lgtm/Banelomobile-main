@@ -29,7 +29,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
-import java.io.File
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.draw.clip
@@ -323,16 +322,10 @@ fun InventoryListScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         if (!product.imageUri.isNullOrEmpty()) {
-                                            // ✅ Load image from file path or URI
-                                            val imageModel: Any = if (product.imageUri.startsWith("/")) {
-                                                File(product.imageUri)
-                                            } else {
-                                                product.imageUri
-                                            }
-
+                                            // ✅ Load image from Cloudinary URL (Coil handles URLs directly)
                                             Image(
                                                 painter = rememberAsyncImagePainter(
-                                                    model = imageModel,
+                                                    model = product.imageUri,
                                                     error = painterResource(R.drawable.ic_launcher_foreground),
                                                     placeholder = painterResource(R.drawable.ic_launcher_foreground)
                                                 ),
