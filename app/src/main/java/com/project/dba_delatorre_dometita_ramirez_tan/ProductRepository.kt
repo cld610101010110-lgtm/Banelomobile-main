@@ -468,6 +468,12 @@ class ProductRepository(
     ): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(tag, "💰 Processing sale...")
+                Log.d(tag, "Product: ${product.name} (${product.category})")
+                Log.d(tag, "Quantity: $quantity")
+                Log.d(tag, "Payment: $paymentMode")
+
                 val request = SalesRequest(
                     productFirebaseId = product.firebaseId,
                     quantity = quantity,
@@ -484,12 +490,19 @@ class ProductRepository(
                 }
 
                 if (result.isSuccess) {
+                    Log.d(tag, "✅ Sale processed successfully!")
+                    Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
                     Result.success(Unit)
                 } else {
-                    Result.failure(Exception(result.exceptionOrNull()))
+                    val error = result.exceptionOrNull()
+                    Log.e(tag, "❌ Sale failed: ${error?.message}")
+                    Log.e(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Result.failure(error ?: Exception("Unknown error"))
                 }
 
             } catch (e: Exception) {
+                Log.e(tag, "❌ Exception in processSale: ${e.message}", e)
+                Log.e(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
                 Result.failure(e)
             }
         }
