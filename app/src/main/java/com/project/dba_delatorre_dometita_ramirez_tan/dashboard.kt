@@ -473,9 +473,21 @@ fun DrawerMenuItem(
             .clickable {
                 when (title) {
                     "Log Out" -> onLogoutClick()
-                    "Overview" -> navController.navigate(Routes.R_DashboardScreen.routes)
-                    "Order Process" -> navController.navigate(Routes.OrderProcess.routes)
-                    "Inventory List" -> navController.navigate(Routes.R_InventoryList.routes)
+                    "Overview" -> navController.navigate(Routes.R_DashboardScreen.routes) {
+                        // Clear back stack to prevent navigation issues
+                        popUpTo(Routes.R_DashboardScreen.routes) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    "Order Process" -> navController.navigate(Routes.OrderProcess.routes) {
+                        // Clear back stack to prevent navigation issues
+                        popUpTo(Routes.R_DashboardScreen.routes) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                    "Inventory List" -> navController.navigate(Routes.R_InventoryList.routes) {
+                        // Clear back stack to prevent navigation issues
+                        popUpTo(Routes.R_DashboardScreen.routes) { inclusive = false }
+                        launchSingleTop = true
+                    }
                 }
             }
             .padding(horizontal = 24.dp, vertical = 16.dp)

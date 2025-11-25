@@ -68,11 +68,15 @@ class AuditRepository(
                         addProperty("isOnline", isOnline)
                     }
 
-                    BaneloApiService.safeCall {
+                    val apiResult = BaneloApiService.safeCall {
                         BaneloApiService.api.createAuditLog(auditData)
                     }
 
-                    Log.d(TAG, "✅ Audit log saved to API")
+                    if (apiResult.isSuccess) {
+                        Log.d(TAG, "✅ Audit log saved to API")
+                    } else {
+                        Log.w(TAG, "⚠️ API save failed, but data is in Room: ${apiResult.exceptionOrNull()?.message}")
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "⚠️ API save failed, but data is in Room: ${e.message}")
                 }

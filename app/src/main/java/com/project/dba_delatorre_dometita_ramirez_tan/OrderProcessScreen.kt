@@ -736,47 +736,77 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                     orderDate = currentDate
                                 )
 
-                                // FULL API PROCESSING — per product in cart
-                                cartItems.groupBy { it.firebaseId }.forEach { (_, items) ->
+                                // ✅ FIXED: Process all sales and wait for completion
+                                val groupedItems = cartItems.groupBy { it.firebaseId }
+                                var successCount = 0
+                                var failureCount = 0
+                                val totalItems = groupedItems.size
 
-                                    val product = items.first()
-                                    val quantity = items.size
+                                scope.launch {
+                                    groupedItems.forEach { (_, items) ->
+                                        val product = items.first()
+                                        val quantity = items.size
 
-                                    viewModel3.processSale(
-                                        product = product,
-                                        quantity = quantity,
-                                        paymentMode = paymentMode,
-                                        gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else null,
-                                        cashierUsername = "admin" // or use your logged-in username
-                                    ) { success ->
-                                        if (success) {
-                                            // ✅ FIX: Log sale to audit trail
-                                            val totalPrice = product.price * quantity
-                                            AuditHelper.logSale(product.name, quantity, totalPrice)
-                                        } else {
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar(
-                                                    "Sale failed for ${product.name} - Check ingredient stock!",
-                                                    duration = SnackbarDuration.Long
-                                                )
+                                        viewModel3.processSale(
+                                            product = product,
+                                            quantity = quantity,
+                                            paymentMode = paymentMode,
+                                            gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else null,
+                                            cashierUsername = "admin" // or use your logged-in username
+                                        ) { success ->
+                                            if (success) {
+                                                successCount++
+                                                // ✅ Log sale to audit trail
+                                                val totalPrice = product.price * quantity
+                                                AuditHelper.logSale(product.name, quantity, totalPrice)
+                                            } else {
+                                                failureCount++
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar(
+                                                        "Sale failed for ${product.name} - Check ingredient stock!",
+                                                        duration = SnackbarDuration.Long
+                                                    )
+                                                }
+                                            }
+
+                                            // ✅ Check if all sales are processed
+                                            if (successCount + failureCount == totalItems) {
+                                                if (successCount > 0) {
+                                                    // At least some sales succeeded - clear cart and show receipt
+                                                    cartItems = emptyList()
+                                                    cashReceived = ""
+                                                    gcashReferenceId = ""
+                                                    paymentMode = "Cash"
+                                                    selectedDiscount = DiscountTypes.NONE
+                                                    customDiscountPercent = ""
+                                                    cartVisible = false
+                                                    showPrintableReceipt = true
+
+                                                    // ✅ Refresh to update available quantities
+                                                    refreshTrigger++
+                                                    viewModel3.getAllProducts()
+
+                                                    if (failureCount > 0) {
+                                                        scope.launch {
+                                                            snackbarHostState.showSnackbar(
+                                                                "$successCount of $totalItems sales completed. $failureCount failed.",
+                                                                duration = SnackbarDuration.Long
+                                                            )
+                                                        }
+                                                    }
+                                                } else {
+                                                    // All sales failed
+                                                    scope.launch {
+                                                        snackbarHostState.showSnackbar(
+                                                            "All sales failed! Please check your connection and inventory.",
+                                                            duration = SnackbarDuration.Long
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
-
-
-                                cartItems = emptyList()
-                                cashReceived = ""
-                                gcashReferenceId = ""
-                                paymentMode = "Cash"
-                                selectedDiscount = DiscountTypes.NONE
-                                customDiscountPercent = ""
-                                cartVisible = false
-                                showPrintableReceipt = true
-
-                                // ✅ Refresh to update available quantities
-                                refreshTrigger++
-                                viewModel3.getAllProducts()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

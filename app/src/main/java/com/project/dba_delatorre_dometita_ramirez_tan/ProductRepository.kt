@@ -490,7 +490,28 @@ class ProductRepository(
                 }
 
                 if (result.isSuccess) {
-                    Log.d(tag, "✅ Sale processed successfully!")
+                    Log.d(tag, "✅ Sale processed successfully via API!")
+
+                    // ✅ CRITICAL FIX: Save sale to local Room database for offline access and dashboard display
+                    try {
+                        val currentDate = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                        val saleEntity = Entity_SalesReport(
+                            productName = product.name,
+                            category = product.category,
+                            quantity = quantity,
+                            price = product.price,
+                            orderDate = currentDate,
+                            productFirebaseId = product.firebaseId,
+                            paymentMode = paymentMode,
+                            gcashReferenceId = gcashReferenceId ?: ""
+                        )
+                        daoSalesReport.insertSale(saleEntity)
+                        Log.d(tag, "✅ Sale also saved to local Room database")
+                    } catch (e: Exception) {
+                        Log.w(tag, "⚠️ Failed to save sale locally: ${e.message}")
+                        // Continue anyway since API call succeeded
+                    }
+
                     Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
                     Result.success(Unit)
                 } else {
