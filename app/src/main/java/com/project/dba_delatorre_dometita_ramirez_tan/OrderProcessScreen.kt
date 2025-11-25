@@ -134,7 +134,7 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
     LaunchedEffect(Unit) {
         android.util.Log.d("OrderProcess", "🔄 Force refreshing data on screen entry...")
         viewModel3.getAllProducts() // Refresh from API
-        recipeViewModel.fetchAllRecipes() // Refresh recipes
+        recipeViewModel.syncRecipes() // Refresh recipes (correct method name)
         kotlinx.coroutines.delay(600) // Wait for data
         refreshTrigger++ // Trigger recalculation
         android.util.Log.d("OrderProcess", "✅ Force refresh complete")
