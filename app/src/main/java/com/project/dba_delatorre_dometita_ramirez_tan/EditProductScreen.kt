@@ -155,20 +155,29 @@ fun EditProductScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(Color.LightGray)
-                                    .clickable { imagePickerLauncher.launch("image/*") },
+                                    .clickable {
+                                        try {
+                                            imagePickerLauncher.launch("image/*")
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("EditProductScreen", "Image picker launch failed: ${e.message}")
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (displayImageUrl != null && displayImageUrl.isNotEmpty()) {
+                                    android.util.Log.d("EditProductScreen", "📸 Displaying image: $displayImageUrl")
                                     Image(
                                         painter = rememberAsyncImagePainter(
                                             model = displayImageUrl,
                                             error = painterResource(R.drawable.ic_launcher_foreground),
                                             placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                            onSuccess = {
+                                                android.util.Log.d("EditProductScreen", "✅ Image loaded successfully: $displayImageUrl")
+                                            },
                                             onError = { error ->
-                                                android.util.Log.e(
-                                                    "EditProductScreen",
-                                                    "Image load failed: ${error.result.throwable?.message}"
-                                                )
+                                                android.util.Log.e("EditProductScreen", "❌ Image load failed for: $displayImageUrl")
+                                                android.util.Log.e("EditProductScreen", "Error: ${error.result.throwable?.message}")
+                                                error.result.throwable?.printStackTrace()
                                             }
                                         ),
                                         contentDescription = "Product Image",

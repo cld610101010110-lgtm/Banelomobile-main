@@ -138,14 +138,30 @@ fun AddProductScreen(
                             ) {
                                 if (uploadedImageUrl != null || selectedImageUri != null) {
                                     // Show uploaded image or preview
+                                    val imageModel = uploadedImageUrl ?: selectedImageUri
+                                    android.util.Log.d("AddProductScreen", "📸 Displaying image: $imageModel")
                                     Image(
-                                        painter = rememberAsyncImagePainter(uploadedImageUrl ?: selectedImageUri),
+                                        painter = rememberAsyncImagePainter(
+                                            model = imageModel,
+                                            onSuccess = {
+                                                android.util.Log.d("AddProductScreen", "✅ Image loaded successfully")
+                                            },
+                                            onError = { error ->
+                                                android.util.Log.e("AddProductScreen", "❌ Image load failed: ${error.result.throwable?.message}")
+                                            }
+                                        ),
                                         contentDescription = "Selected Image",
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(180.dp)
                                             .clip(RoundedCornerShape(12.dp))
-                                            .clickable { imagePickerLauncher.launch("image/*") },
+                                            .clickable {
+                                                try {
+                                                    imagePickerLauncher.launch("image/*")
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("AddProductScreen", "Image picker launch failed: ${e.message}")
+                                                }
+                                            },
                                         contentScale = ContentScale.Crop
                                     )
                                 } else {

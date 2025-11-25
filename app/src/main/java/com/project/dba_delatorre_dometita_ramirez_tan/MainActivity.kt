@@ -20,14 +20,21 @@
     import kotlinx.coroutines.CoroutineScope
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.launch
+    import coil.ImageLoader
+    import coil.ImageLoaderFactory
+    import coil.disk.DiskCache
+    import coil.memory.MemoryCache
+    import okhttp3.OkHttpClient
+    import java.util.concurrent.TimeUnit
 
-    class MainActivity : ComponentActivity() {
+    class MainActivity : ComponentActivity(), ImageLoaderFactory {
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
             AndroidThreeTen.init(this)
             CloudinaryHelper.initialize(this)
             AuditHelper.initialize(this)
             android.util.Log.d("MainActivity", "✅ AuditHelper initialized")
+            android.util.Log.d("MainActivity", "✅ Coil ImageLoader will be initialized")
             enableEdgeToEdge()
             val db = Database_Users.getDatabase(applicationContext)
             val userdao = db.dao_users()
@@ -215,6 +222,33 @@
                     }
                 }
             }
+        }
+
+        override fun newImageLoader(): ImageLoader {
+            return ImageLoader.Builder(this)
+                .okHttpClient {
+                    OkHttpClient.Builder()
+                        .connectTimeout(30, TimeUnit.SECONDS)
+                        .readTimeout(30, TimeUnit.SECONDS)
+                        .writeTimeout(30, TimeUnit.SECONDS)
+                        .build()
+                }
+                .memoryCache {
+                    MemoryCache.Builder(this)
+                        .maxSizePercent(0.25)
+                        .build()
+                }
+                .diskCache {
+                    DiskCache.Builder()
+                        .directory(cacheDir.resolve("image_cache"))
+                        .maxSizePercent(0.02)
+                        .build()
+                }
+                .respectCacheHeaders(false)
+                .build()
+                .also {
+                    android.util.Log.d("MainActivity", "✅ Coil ImageLoader configured with network support")
+                }
         }
     }
 
