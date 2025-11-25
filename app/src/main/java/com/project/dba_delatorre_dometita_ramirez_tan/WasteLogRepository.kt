@@ -41,14 +41,20 @@ class WasteLogRepository(private val dao: Dao_WasteLog) {
                 addProperty("recordedBy", wasteLog.recordedBy)
             }
 
-            BaneloApiService.safeCall {
+            val result = BaneloApiService.safeCall {
                 BaneloApiService.api.createWasteLog(wasteData)
             }
 
-            Log.d("WasteLogRepo", "✅ Waste log synced to API")
+            // ✅ Only log success and mark as synced if API call succeeded
+            if (result.isSuccess) {
+                Log.d("WasteLogRepo", "✅ Waste log synced to API")
 
-            // Update local record as synced
-            dao.markAsSynced(wasteLog.id, wasteLog.id.toString())
+                // Update local record as synced
+                dao.markAsSynced(wasteLog.id, wasteLog.id.toString())
+            } else {
+                Log.w("WasteLogRepo", "⚠️ API sync failed: ${result.exceptionOrNull()?.message}")
+                Log.w("WasteLogRepo", "⚠️ Data is saved locally, will retry sync later")
+            }
 
         } catch (e: Exception) {
             Log.e("WasteLogRepo", "⚠️ API sync failed (data saved locally): ${e.message}")
