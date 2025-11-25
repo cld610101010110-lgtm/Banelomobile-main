@@ -67,7 +67,12 @@ object DiscountTypes {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewModel, recipeViewModel: RecipeViewModel) {
+fun OrderProcessScreen(
+    navController: NavController,
+    viewModel3: ProductViewModel,
+    recipeViewModel: RecipeViewModel,
+    salesReportViewModel: SalesReportViewModel
+) {
     val context = LocalContext.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -330,7 +335,8 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                         ) {
                                             // ✅ Add overlay for out of stock items
                                             Box {
-                                                if (product.imageUri.isNullOrEmpty()) {
+                                                if (!product.imageUri.isNullOrEmpty()) {
+                                                    // ✅ FIX: Show image when URI exists (logic was backwards!)
                                                     Image(
                                                         painter = rememberAsyncImagePainter(
                                                             model = product.imageUri,
@@ -346,6 +352,7 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                                         alpha = if (isOutOfStock) 0.4f else 1f
                                                     )
                                                 } else {
+                                                    // Show placeholder when no image
                                                     Box(
                                                         modifier = Modifier
                                                             .height(90.dp)
@@ -761,20 +768,21 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                     ) { success ->
                                         if (success) {
                                             // ✅ FIX: Log sale to audit trail
-                                            val totalPrice = product.price * quantity
-                                            AuditHelper.logSale(product.name, quantity, totalPrice)
+                                            val saleTotal = product.price * quantity
+                                            AuditHelper.logSale(product.name, quantity, saleTotal)
 
                                             // ✅ FIX: Save sale to local Room database for Overview page
                                             val saleEntity = Entity_SalesReport(
                                                 productName = product.name,
                                                 category = product.category,
-                                                quantitySold = quantity,
-                                                totalPrice = totalPrice,
+                                                quantity = quantity,
+                                                price = product.price,
+                                                orderDate = currentDate,
+                                                productFirebaseId = product.firebaseId,
                                                 paymentMode = paymentMode,
-                                                gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else "",
-                                                orderDate = currentDate
+                                                gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else ""
                                             )
-                                            viewModel2.insertSale(saleEntity)
+                                            salesReportViewModel.insertSale(saleEntity)
 
                                             android.util.Log.d("OrderProcess", "✅ Sale saved to Room database for Overview")
                                         } else {
@@ -788,6 +796,14 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
                                     }
                                 }
 
+
+                                // ✅ Show success feedback
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Transaction completed successfully! ✅",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
 
                                 cartItems = emptyList()
                                 cashReceived = ""

@@ -322,7 +322,8 @@ fun InventoryListScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        if (product.imageUri.isNullOrEmpty()) {
+                                        if (!product.imageUri.isNullOrEmpty()) {
+                                            // ✅ FIX: Show image when URI exists (logic was backwards!)
                                             Image(
                                                 painter = rememberAsyncImagePainter(
                                                     model = product.imageUri,
@@ -336,6 +337,7 @@ fun InventoryListScreen(
                                                 contentScale = ContentScale.Crop
                                             )
                                         } else {
+                                            // Show placeholder when no image
                                             Box(
                                                 modifier = Modifier
                                                     .size(100.dp)

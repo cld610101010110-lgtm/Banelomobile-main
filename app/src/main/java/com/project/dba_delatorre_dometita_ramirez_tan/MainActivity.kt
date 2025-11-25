@@ -201,7 +201,7 @@
                     composable(Routes.OrderProcess.routes) {
                         // ✅ Check access before showing screen
                         if (RoleManager.canAccessRoute(Routes.OrderProcess.routes)) {
-                            OrderProcessScreen(navController, productViewModel, recipeViewModel)
+                            OrderProcessScreen(navController, productViewModel, recipeViewModel, salesReportViewModel)
                         } else {
                             LaunchedEffect(Unit) {
                                 navController.navigate(RoleManager.getDefaultRoute()) {
