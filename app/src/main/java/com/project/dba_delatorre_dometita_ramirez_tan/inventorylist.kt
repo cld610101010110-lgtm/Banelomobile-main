@@ -95,7 +95,7 @@ fun InventoryListScreen(
     var setupStatus by remember { mutableStateOf("") }
     var isSettingUp by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf(TextFieldValue("")) }
-    val chipOptions = listOf("All", "Beverages", "Pastries", "Ingredients", "Snacks")
+    val chipOptions = listOf("All", "Beverages", "Pastries", "Ingredients")
     var selectedOption by remember { mutableStateOf("All") }
 
     val selectedChipColor = Color(0xFF6F4E37)
@@ -579,7 +579,6 @@ fun InventoryListScreen(
                         }
                     }
                 }
-
         )
     }
 }

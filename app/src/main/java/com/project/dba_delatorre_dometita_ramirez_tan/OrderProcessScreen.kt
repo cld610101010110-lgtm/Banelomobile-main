@@ -138,7 +138,9 @@ fun OrderProcessScreen(navController: NavController, viewModel3: ProductViewMode
         viewModel3.productList
             .filter {
                 it.category.equals("Beverages", ignoreCase = true) ||
-                it.category.equals("Pastries", ignoreCase = true)
+                it.category.equals("Pastries", ignoreCase = true) ||
+                !it.category.equals("Ingredients", ignoreCase = true) ||
+                !it.category.equals("Ingredient", ignoreCase = true)
             }
             .forEach { product ->
                 try {
