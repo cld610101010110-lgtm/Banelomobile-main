@@ -196,7 +196,7 @@ fun TransferProductCard(
             // Product Image
             Image(
                 painter = rememberAsyncImagePainter(
-                    model = product.imageUri ?: R.drawable.img
+                    model = product.image_uri ?: R.drawable.img
                 ),
                 contentDescription = product.name,
                 modifier = Modifier

@@ -224,7 +224,7 @@ fun WasteProductCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Product Image
-            val imageModel: Any = product.imageUri ?: R.drawable.img
+            val imageModel: Any = product.image_uri ?: R.drawable.img
             Image(
                 painter = rememberAsyncImagePainter(
                     model = imageModel

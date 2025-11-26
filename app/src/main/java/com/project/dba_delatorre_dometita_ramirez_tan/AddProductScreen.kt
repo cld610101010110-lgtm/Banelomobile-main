@@ -335,7 +335,7 @@ fun AddProductScreen(
                                                 quantity = qty,
                                                 inventoryA = qty, // All new stock goes to Inventory A (warehouse)
                                                 inventoryB = 0,   // Inventory B starts empty (transfer later)
-                                                imageUri = uploadedImageUrl // ✅ Use Cloudinary URL
+                                                image_uri = uploadedImageUrl // ✅ Use Cloudinary URL
                                             )
                                         )
                                         // ✅ ADD THIS - Log product addition to audit trail

@@ -87,8 +87,8 @@ class ProductRepository(
                 Log.d(tag, "➕ Inserting product: ${product.name}")
 
                 // Step 1: Upload image if exists (only when non-null & non-empty)
-                val cloudinaryImageUrl = if (!product.imageUri.isNullOrEmpty()) {
-                    uploadImageToCloudinary(product.imageUri)
+                val cloudinaryImageUrl = if (!product.image_uri.isNullOrEmpty()) {
+                    uploadImageToCloudinary(product.image_uri)
                 } else {
                     ""
                 }
@@ -102,7 +102,7 @@ class ProductRepository(
                     inventory_a = product.inventoryA,
                     inventory_b = product.inventoryB,
                     cost_per_unit = product.costPerUnit,
-                    imageUri = cloudinaryImageUrl
+                    image_uri = cloudinaryImageUrl
                 )
 
                 // Step 3: Call API
@@ -209,20 +209,20 @@ class ProductRepository(
 
                 // Handle image upload if needed (null-safe)
                 val cloudinaryImageUrl = when {
-                    product.imageUri.isNullOrEmpty() -> {
+                    product.image_uri.isNullOrEmpty() -> {
                         // No image provided
                         ""
                     }
-                    product.imageUri!!.startsWith("https://res.cloudinary.com") -> {
+                    product.image_uri!!.startsWith("https://res.cloudinary.com") -> {
                         // Already a Cloudinary URL — keep it
-                        product.imageUri
+                        product.image_uri
                     }
-                    product.imageUri!!.startsWith("content://") ||
-                            product.imageUri!!.startsWith("file://") ||
-                            product.imageUri!!.contains("/data/user/") -> {
+                    product.image_uri!!.startsWith("content://") ||
+                            product.image_uri!!.startsWith("file://") ||
+                            product.image_uri!!.contains("/data/user/") -> {
                         Log.d(tag, "🆕 Local image detected - uploading...")
                         try {
-                            uploadImageToCloudinary(product.imageUri)
+                            uploadImageToCloudinary(product.image_uri)
                         } catch (e: Exception) {
                             Log.e(tag, "❌ Image upload failed during update: ${e.message}", e)
                             ""
@@ -230,7 +230,7 @@ class ProductRepository(
                     }
                     else -> {
                         // Some other external URL — keep it
-                        product.imageUri
+                        product.image_uri
                     }
                 }
 
@@ -242,7 +242,7 @@ class ProductRepository(
                     inventory_a = product.inventoryA,
                     inventory_b = product.inventoryB,
                     cost_per_unit = product.costPerUnit,
-                    imageUri = cloudinaryImageUrl
+                    image_uri = cloudinaryImageUrl
                 )
 
                 val result = BaneloApiService.safeCall {
@@ -269,10 +269,10 @@ class ProductRepository(
                 Log.d(tag, "🗑️ Deleting product: ${product.name}")
 
                 // Delete image from Cloudinary first (only if present)
-                if (!product.imageUri.isNullOrEmpty()) {
+                if (!product.image_uri.isNullOrEmpty()) {
                     Log.d(tag, "🖼️ Deleting product image...")
                     try {
-                        deleteImageFromCloudinary(product.imageUri)
+                        deleteImageFromCloudinary(product.image_uri)
                     } catch (e: Exception) {
                         Log.e(tag, "❌ Failed to delete image during product delete: ${e.message}", e)
                     }
@@ -358,7 +358,7 @@ class ProductRepository(
                     inventory_a = updatedProduct.inventoryA,
                     inventory_b = updatedProduct.inventoryB,
                     cost_per_unit = updatedProduct.costPerUnit,
-                    imageUri = updatedProduct.imageUri ?: ""
+                    image_uri = updatedProduct.image_uri ?: ""
                 )
 
                 val apiResult = BaneloApiService.safeCall {
@@ -432,7 +432,7 @@ class ProductRepository(
                     inventory_a = newInventoryA,
                     inventory_b = newInventoryB,
                     cost_per_unit = updatedProduct.costPerUnit,
-                    imageUri = updatedProduct.imageUri ?: ""
+                    image_uri = updatedProduct.image_uri ?: ""
                 )
 
                 val result = BaneloApiService.safeCall {
@@ -527,7 +527,7 @@ class ProductRepository(
             inventoryA = response.inventory_a ?: 0,
             inventoryB = response.inventory_b ?: 0,
             costPerUnit = response.cost_per_unit ?: 0.0,
-            imageUri = response.imageUri // nullable allowed
+            image_uri = response.image_uri // nullable allowed
         )
     }
 }

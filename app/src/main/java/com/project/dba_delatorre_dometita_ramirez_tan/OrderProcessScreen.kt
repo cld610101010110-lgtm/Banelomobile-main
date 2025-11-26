@@ -337,11 +337,11 @@ fun OrderProcessScreen(
                                         ) {
                                             // ✅ Add overlay for out of stock items
                                             Box {
-                                                if (!product.imageUri.isNullOrEmpty()) {
+                                                if (!product.image_uri.isNullOrEmpty()) {
                                                     // ✅ Load image from Cloudinary URL (Coil handles URLs directly)
                                                     Image(
                                                         painter = rememberAsyncImagePainter(
-                                                            model = product.imageUri,
+                                                            model = product.image_uri,
                                                             error = painterResource(R.drawable.ic_launcher_foreground),
                                                             placeholder = painterResource(R.drawable.ic_launcher_foreground)
                                                         ),

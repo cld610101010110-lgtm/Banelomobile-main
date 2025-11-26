@@ -323,7 +323,7 @@ class RecipeRepository(
                         inventory_a = newInventoryA,
                         inventory_b = newInventoryB,
                         cost_per_unit = updatedProduct.costPerUnit,
-                        imageUri = updatedProduct.imageUri ?: ""
+                        image_uri = updatedProduct.image_uri ?: ""
                     )
 
                     val apiResult = BaneloApiService.safeCall {

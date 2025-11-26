@@ -20,7 +20,7 @@ data class ProductRequest(
     val inventory_a: Int,
     val inventory_b: Int,
     val cost_per_unit: Double,
-    val imageUri: String = ""
+    val image_uri: String = ""
 )
 
 data class ProductResponse(
@@ -34,7 +34,7 @@ data class ProductResponse(
     val inventory_b: Int,
     val cost_per_unit: Double,
     @SerializedName("image_uri")
-    val imageUri: String?
+    val image_uri: String?
 )
 
 data class SalesRequest(

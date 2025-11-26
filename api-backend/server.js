@@ -364,6 +364,8 @@ app.post('/api/products/transfer', async (req, res) => {
     }
 });
 
+
+
 // ============================================================================
 // SALES - WITH INGREDIENT-BASED DEDUCTION
 // ============================================================================
@@ -644,6 +646,175 @@ app.post('/api/recipes', async (req, res) => {
     }
 });
 
+
+
+// ============================================================================
+// UPDATE RECIPE - COMPLETE CORRECTED VERSION
+// ============================================================================
+app.put('/api/recipes/:recipeId', async (req, res) => {
+    const { recipeId } = req.params;
+    const { productFirebaseId, productName, productNumber, ingredients } = req.body;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Get the numeric recipe ID first
+        const recipe = await pool.query(
+            'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
+            [recipeId]
+        );
+
+        if (recipeResult.rows.length === 0) {
+            throw new Error('Recipe not found');
+        }
+
+        const numericRecipeId = recipeResult.rows[0].id;
+
+        // Update recipe
+        await client.query(
+            `UPDATE recipes
+             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1),
+                 product_name = $2,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE firebase_id = $3`,
+            [productFirebaseId, productName, recipeId]
+        );
+
+        // Delete old ingredients
+        await client.query(
+            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
+            [numericRecipeId]
+        );
+
+        // Insert new ingredients
+        for (const ingredient of ingredients) {
+            await client.query(
+                `INSERT INTO recipe_ingredients (recipe_id, ingredient_firebase_id, 
+                                                 ingredient_name, quantity_needed, unit)
+                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
+                [
+                    numericRecipeId,
+                    ingredient.ingredientFirebaseId,
+                    ingredient.ingredientName,
+                    ingredient.quantityNeeded,
+                    ingredient.unit || 'g'
+                ]
+            );
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: `Recipe for ${productName} updated successfully `});
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error updating recipe:', error);
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ============================================================================
+// DELETE RECIPE - COMPLETE CORRECTED VERSION
+// ============================================================================
+app.delete('/api/recipes/:recipeId', async (req, res) => {
+    const { recipeId } = req.params;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Get recipe info
+        const recipe = await pool.query(
+        'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
+        [recipeId]
+        );
+
+        if (recipeResult.rows.length === 0) {
+            throw new Error('Recipe not found');
+        }
+
+        const numericRecipeId = recipeResult.rows[0].id;
+        const productName = recipeResult.rows[0].product_name;
+
+        // Delete ingredients first
+        await client.query(
+            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
+            [numericRecipeId]
+        );
+
+        // Delete recipe
+        await client.query(
+            'DELETE FROM recipes WHERE firebase_id = $1',
+            [recipeId]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: `Recipe for ${productName} deleted successfully `});
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error deleting recipe:', error);
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ============================================================================
+// INVENTORY TRANSFER (A → B) - COMPLETE CORRECTED VERSION
+// ============================================================================
+app.post('/api/inventory/transfer', async (req, res) => {
+    const { product_id, quantity } = req.body;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Get current inventory using firebase_id
+        const productResult = await client.query(
+            'SELECT inventory_a, inventory_b, name FROM products WHERE firebase_id = $1',
+            [product_id]
+        );
+
+        if (productResult.rows.length === 0) {
+            throw new Error('Product not found');
+        }
+
+        const product = productResult.rows[0];
+
+        if (product.inventory_a < quantity) {
+            throw new Error(`Insufficient stock in Inventory A. Available: ${product.inventory_a}`);
+        }
+
+        // Transfer from A to B
+        await client.query(
+            `UPDATE products
+             SET inventory_a = inventory_a - $1,
+                 inventory_b = inventory_b + $1,
+                 quantity = inventory_b + $1,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE firebase_id = $2`,
+            [quantity, product_id]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: `Transferred ${quantity} units from warehouse to display `});
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error transferring inventory:', error);
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+
+
+
+
 // ============================================================================
 // AUDIT TRAIL / LOGS
 // ============================================================================
@@ -829,12 +1000,12 @@ app.get('/api/reports/low-stock', async (req, res) => {
 // SERVER START
 // ============================================================================
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🚀 Banelo POS API Server');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`✅ Server running on: http://localhost:${PORT}`);
-    console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
+    console.log(`✅ Server running on: http://0.0.0.0:${PORT}`);
+    console.log(`📡 API endpoint: http://0.0.0.0:${PORT}/api`);
     console.log(`📊 Database: PostgreSQL (banelo_db)`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('Available endpoints:');

@@ -49,6 +49,7 @@ fun EditProductScreen(
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var uploadedImageUrl by remember { mutableStateOf<String?>(null) }
     var isUploadingImage by remember { mutableStateOf(false) }
+    val displayImageUrl = uploadedImageUrl ?: currentImageUrl
 
     // Dropdown state
     var expandedCategory by remember { mutableStateOf(false) }
@@ -61,13 +62,13 @@ fun EditProductScreen(
     LaunchedEffect(productToEdit.firebaseId) {
         android.util.Log.d("EditProductScreen", "Loading product: ${productToEdit.name}")
         android.util.Log.d("EditProductScreen", "Product firebaseId: ${productToEdit.firebaseId}")
-        android.util.Log.d("EditProductScreen", "Product imageUri: ${productToEdit.imageUri}")
+        android.util.Log.d("EditProductScreen", "Product imageUri: ${productToEdit.image_uri}")
 
         name = TextFieldValue(productToEdit.name)
         category = productToEdit.category
         price = productToEdit.price.toString()
         quantity = productToEdit.quantity.toString()
-        currentImageUrl = productToEdit.imageUri
+        currentImageUrl = productToEdit.image_uri
         selectedImageUri = null
         uploadedImageUrl = null
     }
@@ -149,7 +150,7 @@ fun EditProductScreen(
                                 .clip(RoundedCornerShape(10.dp))
                         ) {
                             // ✅ Display image: uploaded image > current image > placeholder
-                            val displayImageUrl = uploadedImageUrl ?: currentImageUrl
+
 
                             Box(
                                 modifier = Modifier
@@ -323,7 +324,7 @@ fun EditProductScreen(
                                     inventoryA = if (isIngredient) quantityValue else productToEdit.inventoryA,
                                     inventoryB = productToEdit.inventoryB, // Keep existing B value
                                     costPerUnit = productToEdit.costPerUnit,
-                                    imageUri = finalImageUri // ✅ Use Cloudinary URL
+                                    image_uri = finalImageUri // ✅ Use Cloudinary URL
                                 )
 
                                 android.util.Log.d("EditProductScreen", "Saving product with imageUri: $finalImageUri")

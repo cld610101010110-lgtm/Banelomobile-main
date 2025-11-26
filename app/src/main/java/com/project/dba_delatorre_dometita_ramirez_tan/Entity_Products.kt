@@ -14,5 +14,5 @@ data class Entity_Products(
     val inventoryA: Int = 0, // Main/Warehouse inventory
     val inventoryB: Int = 0, // Expendable/Display inventory (deducted first)
     val costPerUnit: Double = 0.0, // Cost per unit for waste calculation (e.g., ₱0.20 per gram)
-    val imageUri: String? = null
+    val image_uri: String? = null
 )

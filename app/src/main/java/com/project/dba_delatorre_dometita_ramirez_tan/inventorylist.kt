@@ -321,19 +321,19 @@ fun InventoryListScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        if (!product.imageUri.isNullOrEmpty()) {
+                                        if (!product.image_uri.isNullOrEmpty()) {
                                             // ✅ Load image from Cloudinary URL (Coil handles URLs directly)
-                                            android.util.Log.d("InventoryList", "📸 Loading image for ${product.name}: ${product.imageUri}")
+                                            android.util.Log.d("InventoryList", "📸 Loading image for ${product.name}: ${product.image_uri}")
                                             Image(
                                                 painter = rememberAsyncImagePainter(
-                                                    model = product.imageUri,
+                                                    model = product.image_uri,
                                                     error = painterResource(R.drawable.ic_launcher_foreground),
                                                     placeholder = painterResource(R.drawable.ic_launcher_foreground),
                                                     onSuccess = {
                                                         android.util.Log.d("InventoryList", "✅ Image loaded for ${product.name}")
                                                     },
                                                     onError = { error ->
-                                                        android.util.Log.e("InventoryList", "❌ Image load failed for ${product.name}: ${product.imageUri}")
+                                                        android.util.Log.e("InventoryList", "❌ Image load failed for ${product.name}: ${product.image_uri}")
                                                         android.util.Log.e("InventoryList", "Error: ${error.result.throwable?.message}")
                                                     }
                                                 ),
