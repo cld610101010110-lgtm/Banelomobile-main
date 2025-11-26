@@ -13,7 +13,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-console.log("Using DATABASE_URL:", !!process.env.DATABASE_URL)
+console.log("Using HOST:", process.env.DB_HOST )
 // PostgreSQL connection pool
 // Render provides DATABASE_URL automatically, fallback to individual params for local dev
 const pool = new Pool(
