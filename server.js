@@ -16,23 +16,20 @@ app.use(bodyParser.urlencoded({ extended: true }));
 console.log("Using HOST:", process.env.DB_HOST )
 // PostgreSQL connection pool
 // Render provides DATABASE_URL automatically, fallback to individual params for local dev
-const pool = new Pool(
-    process.env.DATABASE_URL
-    ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: { require: true, rejectUnauthorized: false }
-    }
-    : {
-        host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT || '5432'),
-        database: process.env.DB_NAME || 'banelo_db',
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'admin123',
-        max: parseInt(process.env.DB_MAX_CONNECTIONS || '20'),
-        idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
-        connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
-    }
-);
+const pool = new Pool({
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: process.env.DB_NAME || 'banelo_db',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'admin123',
+    ssl: {
+        require: true,
+        rejectUnauthorized: false
+    },
+    max: parseInt(process.env.DB_MAX_CONNECTIONS || '20'),
+    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+    connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
+});
 
 // Test database connection
 pool.connect((err, client, release) => {
