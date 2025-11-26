@@ -3,9 +3,10 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -13,16 +14,24 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // PostgreSQL connection pool
-const pool = new Pool({
-    host: 'localhost',
-    port: 5432,
-    database: 'banelo_db',
-    user: 'postgres',
-    password: 'admin123',
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-});
+// Render provides DATABASE_URL automatically, fallback to individual params for local dev
+const pool = new Pool(
+    process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    }
+    : {
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        database: process.env.DB_NAME || 'banelo_db',
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'admin123',
+        max: parseInt(process.env.DB_MAX_CONNECTIONS || '20'),
+        idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+        connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
+    }
+);
 
 // Test database connection
 pool.connect((err, client, release) => {
@@ -370,17 +379,30 @@ app.post('/api/products/transfer', async (req, res) => {
 // SALES - WITH INGREDIENT-BASED DEDUCTION
 // ============================================================================
 
-// Get all sales
+// Get all sales (limited to last month for performance)
 app.get('/api/sales', async (req, res) => {
     try {
+        // Calculate date from 1 month ago
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
         const result = await pool.query(
             `SELECT s.*, p.name as product_name
              FROM sales s
              LEFT JOIN products p ON s.product_firebase_id = p.id
+             WHERE s.order_date >= $1
              ORDER BY s.order_date DESC
-             LIMIT 1000`
+             LIMIT 1000`,
+            [oneMonthAgo]
         );
-        res.json({ success: true, data: result.rows });
+        res.json({
+            success: true,
+            data: result.rows,
+            meta: {
+                from_date: oneMonthAgo.toISOString(),
+                record_count: result.rows.length
+            }
+        });
     } catch (error) {
         console.error('Error fetching sales:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -953,23 +975,35 @@ app.get('/api/reports/sales-summary', async (req, res) => {
     }
 });
 
-// Get top products
+// Get top products (last month data for performance)
 app.get('/api/reports/top-products', async (req, res) => {
     const { limit = 10 } = req.query;
 
     try {
+        // Calculate date from 1 month ago
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
         const result = await pool.query(
             `SELECT product_name, category,
                     SUM(quantity) as units_sold,
                     SUM(quantity * price) as revenue
              FROM sales
+             WHERE order_date >= $1
              GROUP BY product_name, category
              ORDER BY revenue DESC
-             LIMIT $1`,
-            [limit]
+             LIMIT $2`,
+            [oneMonthAgo, limit]
         );
 
-        res.json({ success: true, data: result.rows });
+        res.json({
+            success: true,
+            data: result.rows,
+            meta: {
+                from_date: oneMonthAgo.toISOString(),
+                period: 'last_month'
+            }
+        });
     } catch (error) {
         console.error('Error fetching top products:', error);
         res.status(500).json({ success: false, error: error.message });
