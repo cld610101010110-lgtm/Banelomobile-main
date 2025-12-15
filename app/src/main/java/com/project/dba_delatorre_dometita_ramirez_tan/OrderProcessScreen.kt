@@ -769,25 +769,44 @@ fun OrderProcessScreen(
                                         cashierUsername = "admin" // or use your logged-in username
                                     ) { success ->
                                         if (success) {
-                                            // ✅ FIX: Log sale to audit trail
+                                            android.util.Log.d("OrderProcess", "━━━━━━━━━━━━━━━━━━━━━━━━")
+                                            android.util.Log.d("OrderProcess", "✅ Sale processed successfully")
+                                            android.util.Log.d("OrderProcess", "   Product: ${product.name}")
+                                            android.util.Log.d("OrderProcess", "   Quantity: $quantity")
+                                            android.util.Log.d("OrderProcess", "   Payment: $paymentMode")
+
+                                            // ✅ Log sale to audit trail
                                             val saleTotal = product.price * quantity
-                                            AuditHelper.logSale(product.name, quantity, saleTotal)
+                                            android.util.Log.d("OrderProcess", "📝 Logging to audit trail...")
+                                            try {
+                                                AuditHelper.logSale(product.name, quantity, saleTotal)
+                                                android.util.Log.d("OrderProcess", "✅ Audit log completed")
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("OrderProcess", "❌ Audit log failed: ${e.message}", e)
+                                            }
 
-                                            // ✅ FIX: Save sale to local Room database for Overview page
-                                            val saleEntity = Entity_SalesReport(
-                                                productName = product.name,
-                                                category = product.category,
-                                                quantity = quantity,
-                                                price = product.price,
-                                                orderDate = currentDate,
-                                                productFirebaseId = product.firebaseId,
-                                                paymentMode = paymentMode,
-                                                gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else ""
-                                            )
-                                            salesReportViewModel.insertSale(saleEntity)
+                                            // ✅ Save sale to local Room database for Overview page
+                                            android.util.Log.d("OrderProcess", "💾 Saving to Room database...")
+                                            try {
+                                                val saleEntity = Entity_SalesReport(
+                                                    productName = product.name,
+                                                    category = product.category,
+                                                    quantity = quantity,
+                                                    price = product.price,
+                                                    orderDate = currentDate,
+                                                    productFirebaseId = product.firebaseId,
+                                                    paymentMode = paymentMode,
+                                                    gcashReferenceId = if (paymentMode == "GCash") gcashReferenceId else ""
+                                                )
+                                                salesReportViewModel.insertSale(saleEntity)
+                                                android.util.Log.d("OrderProcess", "✅ Sale saved to Room database")
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("OrderProcess", "❌ Room save failed: ${e.message}", e)
+                                            }
 
-                                            android.util.Log.d("OrderProcess", "✅ Sale saved to Room database for Overview")
+                                            android.util.Log.d("OrderProcess", "━━━━━━━━━━━━━━━━━━━━━━━━")
                                         } else {
+                                            android.util.Log.e("OrderProcess", "❌ Sale failed for ${product.name}")
                                             scope.launch {
                                                 snackbarHostState.showSnackbar(
                                                     "Sale failed for ${product.name} - Check ingredient stock!",
