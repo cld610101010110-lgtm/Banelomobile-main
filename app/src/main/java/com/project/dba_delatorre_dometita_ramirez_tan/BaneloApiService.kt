@@ -217,7 +217,8 @@ object BaneloApiService {
 
     // ⚠️ FOR ANDROID EMULATOR: use http://10.0.2.2:3000
     // ⚠️ FOR PHYSICAL DEVICE: use http://YOUR_COMPUTER_IP:3000 (e.g., 192.168.1.100)
-    private const val BASE_URL = "http://192.168.254.176:3000/"
+    private const val BASE_URL = "https://banelomobile-main-production-fbd8.up.railway.app"
+
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)

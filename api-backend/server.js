@@ -22,11 +22,11 @@ const pool = new Pool(
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     }
     : {
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST || 'dpg-d4jdnpp5pdvs739cgag0-a.oregon-postgres.render.com',
         port: parseInt(process.env.DB_PORT || '5432'),
         database: process.env.DB_NAME || 'banelo_db',
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'admin123',
+        user: process.env.DB_USER || 'banelo_db_user',
+        password: process.env.DB_PASSWORD || 'QVXPg9Xj1uQsGPvjkagMx7eaVqCvNCR0',
         max: parseInt(process.env.DB_MAX_CONNECTIONS || '20'),
         idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
         connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),

@@ -67,7 +67,7 @@ fun InventoryListScreen(
         viewModel3.productList
             .filter {
                 it.category.equals("Beverages", ignoreCase = true) ||
-                it.category.equals("Pastries", ignoreCase = true)
+                        it.category.equals("Pastries", ignoreCase = true)
             }
             .forEach { product ->
                 try {
@@ -112,7 +112,7 @@ fun InventoryListScreen(
                 // ✅ Use max servings for beverages/pastries, quantity for ingredients
                 when {
                     it.category.equals("Beverages", ignoreCase = true) ||
-                    it.category.equals("Pastries", ignoreCase = true) -> {
+                            it.category.equals("Pastries", ignoreCase = true) -> {
                         (maxServingsMap[it.firebaseId] ?: 0) > 0
                     }
                     else -> it.quantity > 0
@@ -165,26 +165,8 @@ fun InventoryListScreen(
                             }
                         },
                         actions = {
-                            // Setup/Tools Button
-                            IconButton(onClick = {
-                                showSetupDialog = true
-                            }) {
-                                Icon(
-                                    Icons.Default.Build,
-                                    contentDescription = "Setup Tools",
-                                    tint = Color.White
-                                )
-                            }
-                            // Cost Analysis Button
-                            IconButton(onClick = {
-                                navController.navigate(Routes.R_IngredientCostView.routes)
-                            }) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "View Costs",
-                                    tint = Color.White
-                                )
-                            }
+
+
                             // Transfer Button
                             IconButton(onClick = {
                                 navController.navigate(Routes.R_InventoryTransfer.routes)
@@ -372,7 +354,7 @@ fun InventoryListScreen(
                                                     Text(
                                                         when {
                                                             product.category.equals("Beverages", ignoreCase = true) ||
-                                                            product.category.equals("Pastries", ignoreCase = true) -> {
+                                                                    product.category.equals("Pastries", ignoreCase = true) -> {
                                                                 // Use calculated max servings from recipe
                                                                 val maxServings = maxServingsMap[product.firebaseId] ?: 0
                                                                 "Available: $maxServings servings"
@@ -423,171 +405,171 @@ fun InventoryListScreen(
                                                     )
                                                 }
                                             }
-                                            }
-
-                                            // ✅ Out of stock indicator - use max servings for recipes, quantity for ingredients
-                                            val isOutOfStock = when {
-                                                product.category.equals("Beverages", ignoreCase = true) ||
-                                                product.category.equals("Pastries", ignoreCase = true) -> {
-                                                    (maxServingsMap[product.firebaseId] ?: 0) == 0
-                                                }
-                                                else -> product.quantity == 0
-                                            }
-
-                                            if (isOutOfStock) {
-                                                Text(
-                                                    "OUT OF STOCK",
-                                                    fontSize = 10.sp,
-                                                    color = Color.White,
-                                                    modifier = Modifier
-                                                        .background(Color.Red, RoundedCornerShape(4.dp))
-                                                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                                                )
-                                            }
                                         }
 
-                                        Column {
-                                            IconButton(onClick = {
-                                                android.util.Log.d("InventoryList", "🖊️ Editing product: ${product.name}")
-                                                android.util.Log.d("InventoryList", "Firebase ID: ${product.firebaseId}")
-                                                navController.navigate("EditProductScreen/${product.firebaseId}")
-                                            }) {
-                                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6D4C41))
+                                        // ✅ Out of stock indicator - use max servings for recipes, quantity for ingredients
+                                        val isOutOfStock = when {
+                                            product.category.equals("Beverages", ignoreCase = true) ||
+                                                    product.category.equals("Pastries", ignoreCase = true) -> {
+                                                (maxServingsMap[product.firebaseId] ?: 0) == 0
                                             }
-                                            IconButton(onClick = {
-                                                productToDelete = product
-                                                showDeleteDialog = true
-                                            }) {
-                                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFD32F2F))
-                                            }
+                                            else -> product.quantity == 0
+                                        }
+
+                                        if (isOutOfStock) {
+                                            Text(
+                                                "OUT OF STOCK",
+                                                fontSize = 10.sp,
+                                                color = Color.White,
+                                                modifier = Modifier
+                                                    .background(Color.Red, RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Column {
+                                        IconButton(onClick = {
+                                            android.util.Log.d("InventoryList", "🖊️ Editing product: ${product.name}")
+                                            android.util.Log.d("InventoryList", "Firebase ID: ${product.firebaseId}")
+                                            navController.navigate("EditProductScreen/${product.firebaseId}")
+                                        }) {
+                                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6D4C41))
+                                        }
+                                        IconButton(onClick = {
+                                            productToDelete = product
+                                            showDeleteDialog = true
+                                        }) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFD32F2F))
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
-                        if (showDeleteDialog && productToDelete != null) {
-                            AlertDialog(
-                                onDismissRequest = { showDeleteDialog = false },
-                                title = { Text("Confirm Delete", fontFamily = FontFamily.Serif) },
-                                text = { Text("Are you sure you want to delete this record?", fontFamily = FontFamily.Serif) },
-                                confirmButton = {
-                                    Button(
-                                        onClick = {
-                                            AuditHelper.logProductDelete(productToDelete!!.name)
-                                            android.util.Log.d("InventoryList", "✅ Audit trail logged for product delete")
-                                            viewModel3.deleteProduct(productToDelete!!)
-                                            showDeleteDialog = false
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3E2723))
-                                    ) {
-                                        Text("Yes", color = Color.White)
-                                    }
-                                },
-                                dismissButton = {
-                                    Button(
-                                        onClick = { showDeleteDialog = false },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548))
-                                    ) {
-                                        Text("Cancel", color = Color.White)
-                                    }
+                    if (showDeleteDialog && productToDelete != null) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteDialog = false },
+                            title = { Text("Confirm Delete", fontFamily = FontFamily.Serif) },
+                            text = { Text("Are you sure you want to delete this record?", fontFamily = FontFamily.Serif) },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        AuditHelper.logProductDelete(productToDelete!!.name)
+                                        android.util.Log.d("InventoryList", "✅ Audit trail logged for product delete")
+                                        viewModel3.deleteProduct(productToDelete!!)
+                                        showDeleteDialog = false
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3E2723))
+                                ) {
+                                    Text("Yes", color = Color.White)
                                 }
-                            )
-                        }
+                            },
+                            dismissButton = {
+                                Button(
+                                    onClick = { showDeleteDialog = false },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548))
+                                ) {
+                                    Text("Cancel", color = Color.White)
+                                }
+                            }
+                        )
+                    }
 
-                        // Setup Tools Dialog
-                        if (showSetupDialog) {
-                            AlertDialog(
-                                onDismissRequest = { if (!isSettingUp) showSetupDialog = false },
-                                title = { Text("Database Cleanup & Setup", fontWeight = FontWeight.Bold) },
-                                text = {
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        Text(
-                                            "⚠️ Run this to fix database issues and add recipes!",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFD32F2F)
-                                        )
+                    // Setup Tools Dialog
+                    if (showSetupDialog) {
+                        AlertDialog(
+                            onDismissRequest = { if (!isSettingUp) showSetupDialog = false },
+                            title = { Text("Database Cleanup & Setup", fontWeight = FontWeight.Bold) },
+                            text = {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        "⚠️ Run this to fix database issues and add recipes!",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFD32F2F)
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        "This will:",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text("• Remove unused fields from recipes", fontSize = 13.sp)
+                                    Text("• Fix missing ingredient Firebase IDs", fontSize = 13.sp)
+                                    Text("• Transfer stock values to quantity", fontSize = 13.sp)
+                                    Text("• Set realistic cost per unit values", fontSize = 13.sp)
+                                    Text("• Add recipes for all pastries", fontSize = 13.sp)
+                                    Text("• Enable cost calculations", fontSize = 13.sp)
+
+                                    if (setupStatus.isNotEmpty()) {
                                         Spacer(modifier = Modifier.height(12.dp))
-                                        Text(
-                                            "This will:",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text("• Remove unused fields from recipes", fontSize = 13.sp)
-                                        Text("• Fix missing ingredient Firebase IDs", fontSize = 13.sp)
-                                        Text("• Transfer stock values to quantity", fontSize = 13.sp)
-                                        Text("• Set realistic cost per unit values", fontSize = 13.sp)
-                                        Text("• Add recipes for all pastries", fontSize = 13.sp)
-                                        Text("• Enable cost calculations", fontSize = 13.sp)
-
-                                        if (setupStatus.isNotEmpty()) {
-                                            Spacer(modifier = Modifier.height(12.dp))
-                                            Card(
-                                                colors = CardDefaults.cardColors(
-                                                    containerColor = if (setupStatus.contains("✅")) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                                                )
-                                            ) {
-                                                Text(
-                                                    setupStatus,
-                                                    modifier = Modifier.padding(12.dp),
-                                                    fontSize = 13.sp
-                                                )
-                                            }
-                                        }
-                                    }
-                                },
-                                confirmButton = {
-                                    Button(
-                                        onClick = {
-                                            scope.launch {
-                                                isSettingUp = true
-                                                setupStatus = "🔄 Running setup..."
-
-                                                try {
-                                                    val result = FirestoreSetup.runCompleteSetup()
-                                                    setupStatus = if (result.isSuccess) {
-                                                        "✅ ${result.getOrNull()}"
-                                                    } else {
-                                                        "❌ Error: ${result.exceptionOrNull()?.message}"
-                                                    }
-                                                } catch (e: Exception) {
-                                                    setupStatus = "❌ Error: ${e.message}"
-                                                }
-
-                                                isSettingUp = false
-                                            }
-                                        },
-                                        enabled = !isSettingUp,
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6F4E37))
-                                    ) {
-                                        if (isSettingUp) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(16.dp),
-                                                color = Color.White,
-                                                strokeWidth = 2.dp
+                                        Card(
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (setupStatus.contains("✅")) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
                                             )
-                                        } else {
-                                            Text("Run Setup", color = Color.White)
+                                        ) {
+                                            Text(
+                                                setupStatus,
+                                                modifier = Modifier.padding(12.dp),
+                                                fontSize = 13.sp
+                                            )
                                         }
-                                    }
-                                },
-                                dismissButton = {
-                                    Button(
-                                        onClick = {
-                                            showSetupDialog = false
-                                            setupStatus = ""
-                                        },
-                                        enabled = !isSettingUp,
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548))
-                                    ) {
-                                        Text("Close", color = Color.White)
                                     }
                                 }
-                            )
-                        }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            isSettingUp = true
+                                            setupStatus = "🔄 Running setup..."
+
+                                            try {
+                                                val result = FirestoreSetup.runCompleteSetup()
+                                                setupStatus = if (result.isSuccess) {
+                                                    "✅ ${result.getOrNull()}"
+                                                } else {
+                                                    "❌ Error: ${result.exceptionOrNull()?.message}"
+                                                }
+                                            } catch (e: Exception) {
+                                                setupStatus = "❌ Error: ${e.message}"
+                                            }
+
+                                            isSettingUp = false
+                                        }
+                                    },
+                                    enabled = !isSettingUp,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6F4E37))
+                                ) {
+                                    if (isSettingUp) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Text("Run Setup", color = Color.White)
+                                    }
+                                }
+                            },
+                            dismissButton = {
+                                Button(
+                                    onClick = {
+                                        showSetupDialog = false
+                                        setupStatus = ""
+                                    },
+                                    enabled = !isSettingUp,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548))
+                                ) {
+                                    Text("Close", color = Color.White)
+                                }
+                            }
+                        )
                     }
                 }
+            }
         )
     }
 }
