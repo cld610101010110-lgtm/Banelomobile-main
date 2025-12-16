@@ -669,7 +669,7 @@ app.post('/api/recipes', async (req, res) => {
 
 
 // ============================================================================
-// UPDATE RECIPE - COMPLETE CORRECTED VERSION
+// UPDATE RECIPE
 // ============================================================================
 app.put('/api/recipes/:recipeId', async (req, res) => {
     const { recipeId } = req.params;
@@ -679,9 +679,9 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get the numeric recipe ID first
-        const recipe = await pool.query(
-            'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',
+        // Get the numeric recipe ID first - FIX: Cast columns to text
+        const recipe = await client.query(
+            'SELECT * FROM recipes WHERE id::text = $1 OR firebase_id::text = $1',
             [recipeId]
         );
         
@@ -697,14 +697,14 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
              SET product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1),
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $3::uuid`,
-           [productFirebaseId, productName, numericRecipeId]         
+             WHERE id = $3`,
+            [productFirebaseId, productName, numericRecipeId]
         );
         
-        // Delete old ingredients (ONLY ONE DELETE!)
+        // Delete old ingredients
         await client.query(
             'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
-            [numericRecipeId]  // ✅ Use the numeric ID from database
+            [recipe.rows[0].firebase_id]
         );
 
         // Insert new ingredients
@@ -714,7 +714,7 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
                                                  ingredient_name, quantity_needed, unit)
                  VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
                 [
-                    numericRecipeId,  // ✅ Changed from recipe_id to recipe_firebase_id
+                    recipe.rows[0].firebase_id,
                     ingredient.ingredientFirebaseId,
                     ingredient.ingredientName,
                     ingredient.quantityNeeded,
@@ -736,8 +736,12 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
 });
 
 
+
 // ============================================================================
 // DELETE RECIPE - COMPLETE CORRECTED VERSION
+// ============================================================================
+// ============================================================================
+// DELETE RECIPE
 // ============================================================================
 app.delete('/api/recipes/:recipeId', async (req, res) => {
     const { recipeId } = req.params;
@@ -746,33 +750,33 @@ app.delete('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get recipe info
-        const recipe = await pool.query(
-    'SELECT * FROM recipes WHERE id = $1::uuid OR firebase_id = $1',
-    [recipeId]
+        // Get recipe info - FIX: Cast columns to text
+        const recipe = await client.query(
+            'SELECT * FROM recipes WHERE id::text = $1 OR firebase_id::text = $1',
+            [recipeId]
         );
         
-        if (recipe.rows.length === 0) {  // ✅ FIX: Changed 'recipeResult' to 'recipe'
+        if (recipe.rows.length === 0) {
             throw new Error('Recipe not found');
         }
         
-        const numericRecipeId = recipe.rows[0].id; 
-        const productName = recipe.rows[0].product_name;  // ✅ FIX: Changed 'recipeResult' to 'recipe'
+        const numericRecipeId = recipe.rows[0].id;
+        const productName = recipe.rows[0].product_name;
         
         // Delete ingredients first
         await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',  // ✅ FIX: Changed 'recipe_id' to 'recipe_firebase_id'
-           [numericRecipeId]  // ✅ FIX: Use recipeId directly (it's the firebase_id from URL)
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
+            [recipe.rows[0].firebase_id]
         );
         
         // Delete recipe
         await client.query(
-            'DELETE FROM recipes WHERE id = $1',  // ✅ FIX: Changed 'firebase_id' to 'id'
-            [numericRecipeId] 
+            'DELETE FROM recipes WHERE id = $1',
+            [numericRecipeId]
         );
 
         await client.query('COMMIT');
-        res.json({ success: true, message: `Recipe for ${productName} deleted successfully `});
+        res.json({ success: true, message: `Recipe for ${productName} deleted successfully` });
 
     } catch (error) {
         await client.query('ROLLBACK');
