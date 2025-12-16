@@ -175,13 +175,13 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
                     WelcomeLogo(navController = navController)
                 }
 
-                composable("EditProductScreen/{id}") { backStackEntry ->
-                    val productId = backStackEntry.arguments?.getString("id") ?: ""
+                composable("EditProductScreen/{firebaseId}") { backStackEntry ->
+                    val firebaseId = backStackEntry.arguments?.getString("firebaseId") ?: ""
 
                     // ✅ Check access before showing screen
-                    if (RoleManager.canAccessRoute("EditProductScreen/$productId")) {
+                    if (RoleManager.canAccessRoute("EditProductScreen/$firebaseId")) {
                         val products = productViewModel.productList
-                        val product = products.find { it.id == productId }
+                        val product = products.find { it.firebaseId == firebaseId }
 
                         if (product != null) {
                             EditProductScreen(

@@ -5,8 +5,8 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "products")
 data class Entity_Products(
-    @PrimaryKey val id: String = "",
-    val firebaseId: String = "",
+    @PrimaryKey val firebaseId: String = "",
+    val id: String = "",
     val name: String,
     val category: String,
     val price: Double,
