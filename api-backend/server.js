@@ -697,13 +697,13 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
              SET product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1),
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $3`,
+             WHERE id = $3::uuid`,
             [productFirebaseId, productName, numericRecipeId]
         );
         
         // Delete old ingredients (ONLY ONE DELETE!)
         await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
+            'DELETE FROM recipes WHERE id = $1::uuid',
             [numericRecipeId]  // ✅ Use the numeric ID from database
         );
 
@@ -748,7 +748,7 @@ app.delete('/api/recipes/:recipeId', async (req, res) => {
 
         // Get recipe info
         const recipe = await pool.query(
-    'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',
+    'SELECT * FROM recipes WHERE id = $1::uuid OR firebase_id = $1',
     [recipeId]
         );
         
