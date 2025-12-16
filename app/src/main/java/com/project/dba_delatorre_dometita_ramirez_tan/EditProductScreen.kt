@@ -353,44 +353,47 @@ fun EditProductScreen(
                         Button(
                             onClick = {
                                 // ✅ Validate shelf life if perishable
-                                if (isPerishable && shelfLifeDays.isBlank()) {
+                                val isShelfLifeValid = !isPerishable || shelfLifeDays.isNotBlank()
+
+                                if (!isShelfLifeValid) {
                                     shelfLifeError = true
-                                    return@onClick
+                                } else {
+                                    shelfLifeError = false
+
+                                    // ✅ Use uploadedImageUrl if new image was uploaded, otherwise keep current
+                                    val finalImageUri = uploadedImageUrl ?: currentImageUrl ?: ""
+
+                                    // ✅ FIX: When adding quantity to ingredients, it should go to Inventory A
+                                    val isIngredient = category.equals("Ingredients", ignoreCase = true)
+                                    val quantityValue = quantity.toIntOrNull() ?: 0
+                                    val shelfLifeValue = if (isPerishable) shelfLifeDays.toIntOrNull() ?: 0 else 0
+
+                                    val updatedProduct = Entity_Products(
+                                        id = productToEdit.id,
+                                        firebaseId = productToEdit.firebaseId,
+                                        name = name.text,
+                                        category = category,
+                                        price = price.toDoubleOrNull() ?: 0.0,
+                                        quantity = quantityValue,
+                                        isPerishable = isPerishable,
+                                        shelfLifeDays = shelfLifeValue,
+                                        // ✅ For ingredients: put stock in Inventory A, keep existing B
+                                        // For other products: keep existing inventory values
+                                        inventoryA = if (isIngredient) quantityValue else productToEdit.inventoryA,
+                                        inventoryB = productToEdit.inventoryB, // Keep existing B value
+                                        costPerUnit = productToEdit.costPerUnit,
+                                        image_uri = finalImageUri // ✅ Use Cloudinary URL
+                                    )
+
+                                    android.util.Log.d("EditProductScreen", "Saving product with imageUri: $finalImageUri")
+                                    android.util.Log.d("EditProductScreen", "Inventory A: ${updatedProduct.inventoryA}, B: ${updatedProduct.inventoryB}")
+                                    android.util.Log.d("EditProductScreen", "Perishable: ${updatedProduct.isPerishable}, ShelfLife: ${updatedProduct.shelfLifeDays} days")
+                                    viewModel3.updateProduct(updatedProduct)
+                                    AuditHelper.logProductEdit(name.text)
+                                    android.util.Log.d("EditProductScreen", "✅ Audit trail logged for product edit")
+
+                                    navController.popBackStack()
                                 }
-
-                                // ✅ Use uploadedImageUrl if new image was uploaded, otherwise keep current
-                                val finalImageUri = uploadedImageUrl ?: currentImageUrl ?: ""
-
-                                // ✅ FIX: When adding quantity to ingredients, it should go to Inventory A
-                                val isIngredient = category.equals("Ingredients", ignoreCase = true)
-                                val quantityValue = quantity.toIntOrNull() ?: 0
-                                val shelfLifeValue = if (isPerishable) shelfLifeDays.toIntOrNull() ?: 0 else 0
-
-                                val updatedProduct = Entity_Products(
-                                    id = productToEdit.id,
-                                    firebaseId = productToEdit.firebaseId,
-                                    name = name.text,
-                                    category = category,
-                                    price = price.toDoubleOrNull() ?: 0.0,
-                                    quantity = quantityValue,
-                                    isPerishable = isPerishable,
-                                    shelfLifeDays = shelfLifeValue,
-                                    // ✅ For ingredients: put stock in Inventory A, keep existing B
-                                    // For other products: keep existing inventory values
-                                    inventoryA = if (isIngredient) quantityValue else productToEdit.inventoryA,
-                                    inventoryB = productToEdit.inventoryB, // Keep existing B value
-                                    costPerUnit = productToEdit.costPerUnit,
-                                    image_uri = finalImageUri // ✅ Use Cloudinary URL
-                                )
-
-                                android.util.Log.d("EditProductScreen", "Saving product with imageUri: $finalImageUri")
-                                android.util.Log.d("EditProductScreen", "Inventory A: ${updatedProduct.inventoryA}, B: ${updatedProduct.inventoryB}")
-                                android.util.Log.d("EditProductScreen", "Perishable: ${updatedProduct.isPerishable}, ShelfLife: ${updatedProduct.shelfLifeDays} days")
-                                viewModel3.updateProduct(updatedProduct)
-                                AuditHelper.logProductEdit(name.text)
-                                android.util.Log.d("EditProductScreen", "✅ Audit trail logged for product edit")
-
-                                navController.popBackStack()
                             },
                             enabled = !isUploadingImage, // ✅ Disable while uploading
                             modifier = Modifier
@@ -403,6 +406,7 @@ fun EditProductScreen(
                         ) {
                             Text("Save Changes", fontWeight = FontWeight.Bold)
                         }
+
                     }
                 }
             }
