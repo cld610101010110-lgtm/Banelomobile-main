@@ -62,9 +62,9 @@ fun EditProductScreen(
     val scope = rememberCoroutineScope()
 
     // Update states when product changes
-    LaunchedEffect(productToEdit.id) {
+    LaunchedEffect(productToEdit.firebaseId) {
         android.util.Log.d("EditProductScreen", "Loading product: ${productToEdit.name}")
-        android.util.Log.d("EditProductScreen", "Product id: ${productToEdit.id}")
+        android.util.Log.d("EditProductScreen", "Product firebaseId: ${productToEdit.firebaseId}")
         android.util.Log.d("EditProductScreen", "Product imageUri: ${productToEdit.image_uri}")
 
         name = TextFieldValue(productToEdit.name)
