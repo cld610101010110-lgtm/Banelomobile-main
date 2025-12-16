@@ -394,7 +394,7 @@ class RecipeRepository(
                 return null
             }
 
-            val product = daoProducts.getProductById(productId)
+            val product = daoProducts.getProductByFirebaseId(productId)
             val sellingPrice = product?.price ?: 0.0
 
             val ingredients = daoRecipe.getIngredientsByRecipeId(recipe.recipeId)
