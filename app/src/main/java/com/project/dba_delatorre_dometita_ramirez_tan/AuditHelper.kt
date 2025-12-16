@@ -87,6 +87,17 @@ object AuditHelper {
             username
         )
     }
+    fun logTransfer(productName: String, quantity: Int, source: String = "Inventory A", destination: String = "Inventory B") {
+        val currentUser = UserSession.currentUser
+        val username = currentUser?.Entity_username ?: "Unknown"
+        val fullName = UserSession.getUserFullName()
+        log(
+            AuditActions.INVENTORY_TRANSFER,
+            "$fullName transferred $quantity units of $productName from $source to $destination",
+            "Success",
+            username
+        )
+    }
 
     // ✅ KEEP THIS - The correct log function with username parameter
     private fun log(action: String, description: String, status: String = "Success", username: String) {
