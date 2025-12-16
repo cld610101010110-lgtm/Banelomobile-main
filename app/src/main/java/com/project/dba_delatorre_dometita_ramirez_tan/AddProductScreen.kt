@@ -48,11 +48,14 @@ fun AddProductScreen(
     var productCategory by remember { mutableStateOf("") }
     var productPrice by remember { mutableStateOf("") }
     var productQuantity by remember { mutableStateOf("") }
+    var isPerishable by remember { mutableStateOf(false) }
+    var shelfLifeDays by remember { mutableStateOf("") }
 
     var nameError by remember { mutableStateOf(false) }
     var categoryError by remember { mutableStateOf(false) }
     var priceError by remember { mutableStateOf(false) }
     var quantityError by remember { mutableStateOf(false) }
+    var shelfLifeError by remember { mutableStateOf(false) }
     var imageError by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var isUploadingImage by remember { mutableStateOf(false) }
@@ -310,6 +313,48 @@ fun AddProductScreen(
                             )
                             if (quantityError) Text("Required", color = Color.Red, fontSize = 12.sp)
 
+                            // ✅ PERISHABLE SECTION - Only for Ingredients
+                            if (productCategory.equals("Ingredients", ignoreCase = true)) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Perishable Settings", fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, color = Color(0xFF6B3E2E))
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = isPerishable,
+                                        onCheckedChange = {
+                                            isPerishable = it
+                                            shelfLifeError = false
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("This product is perishable", fontSize = 14.sp)
+                                }
+
+                                if (isPerishable) {
+                                    OutlinedTextField(
+                                        value = shelfLifeDays,
+                                        onValueChange = {
+                                            // Only allow digits
+                                            if (it.isEmpty() || it.matches(Regex("^\\d+$"))) {
+                                                shelfLifeDays = it
+                                                shelfLifeError = false
+                                            }
+                                        },
+                                        label = { Text("Shelf Life (days)") },
+                                        isError = shelfLifeError,
+                                        modifier = textFieldModifier,
+                                        shape = RoundedCornerShape(20.dp),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                    )
+                                    if (shelfLifeError) Text("Required", color = Color.Red, fontSize = 12.sp)
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Button(
@@ -320,19 +365,26 @@ fun AddProductScreen(
                                     quantityError = productQuantity.isBlank()
                                     imageError = uploadedImageUrl == null
 
-                                    val isValid = !(nameError || categoryError || priceError || quantityError || imageError)
+                                    // ✅ Validate shelf life if perishable
+                                    shelfLifeError = isPerishable && shelfLifeDays.isBlank()
+
+                                    val isValid = !(nameError || categoryError || priceError || quantityError || imageError || shelfLifeError)
 
                                     if (isValid) {
                                         android.util.Log.d("AddProductScreen", "🆕 Creating new product...")
                                         android.util.Log.d("AddProductScreen", "Cloudinary image URL: $uploadedImageUrl")
 
                                         val qty = productQuantity.toInt()
+                                        val shelfLifeValue = if (isPerishable) shelfLifeDays.toIntOrNull() ?: 0 else 0
+
                                         viewModel3.insertProduct(
                                             Entity_Products(
                                                 name = productName.trim(),
                                                 category = productCategory.trim(),
                                                 price = productPrice.toDouble(),
                                                 quantity = qty,
+                                                isPerishable = isPerishable,
+                                                shelfLifeDays = shelfLifeValue,
                                                 inventoryA = qty, // All new stock goes to Inventory A (warehouse)
                                                 inventoryB = 0,   // Inventory B starts empty (transfer later)
                                                 image_uri = uploadedImageUrl // ✅ Use Cloudinary URL
@@ -341,6 +393,7 @@ fun AddProductScreen(
                                         // ✅ ADD THIS - Log product addition to audit trail
                                         AuditHelper.logProductAdd(productName.trim())
                                         android.util.Log.d("AddProductScreen", "✅ Audit trail logged for product add")
+                                        android.util.Log.d("AddProductScreen", "Perishable: $isPerishable, ShelfLife: $shelfLifeValue days")
                                         showDialog = true
                                     }
                                 },

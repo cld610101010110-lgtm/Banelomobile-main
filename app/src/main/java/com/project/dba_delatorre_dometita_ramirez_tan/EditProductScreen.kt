@@ -45,6 +45,9 @@ fun EditProductScreen(
     var category by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
+    var isPerishable by remember { mutableStateOf(false) }
+    var shelfLifeDays by remember { mutableStateOf("") }
+    var shelfLifeError by remember { mutableStateOf(false) }
     var currentImageUrl by remember { mutableStateOf<String?>(null) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var uploadedImageUrl by remember { mutableStateOf<String?>(null) }
@@ -59,15 +62,17 @@ fun EditProductScreen(
     val scope = rememberCoroutineScope()
 
     // Update states when product changes
-    LaunchedEffect(productToEdit.firebaseId) {
+    LaunchedEffect(productToEdit.id) {
         android.util.Log.d("EditProductScreen", "Loading product: ${productToEdit.name}")
-        android.util.Log.d("EditProductScreen", "Product firebaseId: ${productToEdit.firebaseId}")
+        android.util.Log.d("EditProductScreen", "Product id: ${productToEdit.id}")
         android.util.Log.d("EditProductScreen", "Product imageUri: ${productToEdit.image_uri}")
 
         name = TextFieldValue(productToEdit.name)
         category = productToEdit.category
         price = productToEdit.price.toString()
         quantity = productToEdit.quantity.toString()
+        isPerishable = productToEdit.isPerishable
+        shelfLifeDays = productToEdit.shelfLifeDays.toString()
         currentImageUrl = productToEdit.image_uri
         selectedImageUri = null
         uploadedImageUrl = null
@@ -301,16 +306,65 @@ fun EditProductScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
 
+                        // ✅ PERISHABLE SECTION - Only for Ingredients
+                        if (category.equals("Ingredients", ignoreCase = true)) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Perishable Settings", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF6B3E2E))
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isPerishable,
+                                    onCheckedChange = {
+                                        isPerishable = it
+                                        shelfLifeError = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("This product is perishable", fontSize = 14.sp)
+                            }
+
+                            if (isPerishable) {
+                                OutlinedTextField(
+                                    value = shelfLifeDays,
+                                    onValueChange = {
+                                        // Only allow digits
+                                        if (it.isEmpty() || it.matches(Regex("^\\d+$"))) {
+                                            shelfLifeDays = it
+                                            shelfLifeError = false
+                                        }
+                                    },
+                                    label = { Text("Shelf Life (days)") },
+                                    isError = shelfLifeError,
+                                    modifier = textFieldModifier,
+                                    shape = RoundedCornerShape(20.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                )
+                                if (shelfLifeError) Text("Required", color = Color.Red, fontSize = 12.sp)
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
                             onClick = {
+                                // ✅ Validate shelf life if perishable
+                                if (isPerishable && shelfLifeDays.isBlank()) {
+                                    shelfLifeError = true
+                                    return@onClick
+                                }
+
                                 // ✅ Use uploadedImageUrl if new image was uploaded, otherwise keep current
                                 val finalImageUri = uploadedImageUrl ?: currentImageUrl ?: ""
 
                                 // ✅ FIX: When adding quantity to ingredients, it should go to Inventory A
                                 val isIngredient = category.equals("Ingredients", ignoreCase = true)
                                 val quantityValue = quantity.toIntOrNull() ?: 0
+                                val shelfLifeValue = if (isPerishable) shelfLifeDays.toIntOrNull() ?: 0 else 0
 
                                 val updatedProduct = Entity_Products(
                                     id = productToEdit.id,
@@ -319,6 +373,8 @@ fun EditProductScreen(
                                     category = category,
                                     price = price.toDoubleOrNull() ?: 0.0,
                                     quantity = quantityValue,
+                                    isPerishable = isPerishable,
+                                    shelfLifeDays = shelfLifeValue,
                                     // ✅ For ingredients: put stock in Inventory A, keep existing B
                                     // For other products: keep existing inventory values
                                     inventoryA = if (isIngredient) quantityValue else productToEdit.inventoryA,
@@ -329,6 +385,7 @@ fun EditProductScreen(
 
                                 android.util.Log.d("EditProductScreen", "Saving product with imageUri: $finalImageUri")
                                 android.util.Log.d("EditProductScreen", "Inventory A: ${updatedProduct.inventoryA}, B: ${updatedProduct.inventoryB}")
+                                android.util.Log.d("EditProductScreen", "Perishable: ${updatedProduct.isPerishable}, ShelfLife: ${updatedProduct.shelfLifeDays} days")
                                 viewModel3.updateProduct(updatedProduct)
                                 AuditHelper.logProductEdit(name.text)
                                 android.util.Log.d("EditProductScreen", "✅ Audit trail logged for product edit")
