@@ -698,7 +698,7 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = $3`,
-            [productFirebaseId, productName, recipeId]
+            [productFirebaseId, productName, numericRecipeId]
         );
         
         // Delete old ingredients (ONLY ONE DELETE!)
@@ -767,7 +767,7 @@ app.delete('/api/recipes/:recipeId', async (req, res) => {
         // Delete recipe
         await client.query(
             'DELETE FROM recipes WHERE id = $1',  // ✅ FIX: Changed 'firebase_id' to 'id'
-            [recipeId]
+            [numericRecipeId]
         );
 
         await client.query('COMMIT');
