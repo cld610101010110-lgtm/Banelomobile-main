@@ -680,26 +680,33 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
         await client.query('BEGIN');
 
         // Get the numeric recipe ID first
-        const recipe = await pool.query(
-            'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
-            [recipeId]
+       const recipe = await pool.query(
+    'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',
+    [recipeId]
         );
-
-        if (recipeResult.rows.length === 0) {
+        
+        if (recipe.rows.length === 0) {  // ✅ FIX: Changed 'recipeResult' to 'recipe'
             throw new Error('Recipe not found');
         }
-
-        const numericRecipeId = recipeResult.rows[0].id;
-
+        
+        const numericRecipeId = recipe.rows[0].id;  // ✅ FIX: Changed 'recipeResult' to 'recipe'
+        
         // Update recipe
         await client.query(
             `UPDATE recipes
              SET product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1),
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE firebase_id = $3`,
+             WHERE id = $3`,  // ✅ FIX: Changed 'firebase_id' to 'id'
             [productFirebaseId, productName, recipeId]
         );
+        
+        // Delete old ingredients
+        await client.query(
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',  // ✅ FIX: Changed 'recipe_id' to 'recipe_firebase_id'
+            [recipeId]  // ✅ FIX: Use recipeId directly (it's the firebase_id from URL)
+        );
+
 
         // Delete old ingredients
         await client.query(
@@ -747,26 +754,25 @@ app.delete('/api/recipes/:recipeId', async (req, res) => {
 
         // Get recipe info
         const recipe = await pool.query(
-        'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
-        [recipeId]
+    'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',
+    [recipeId]
         );
-
-        if (recipeResult.rows.length === 0) {
+        
+        if (recipe.rows.length === 0) {  // ✅ FIX: Changed 'recipeResult' to 'recipe'
             throw new Error('Recipe not found');
         }
-
-        const numericRecipeId = recipeResult.rows[0].id;
-        const productName = recipeResult.rows[0].product_name;
-
+        
+        const productName = recipe.rows[0].product_name;  // ✅ FIX: Changed 'recipeResult' to 'recipe'
+        
         // Delete ingredients first
         await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
-            [numericRecipeId]
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',  // ✅ FIX: Changed 'recipe_id' to 'recipe_firebase_id'
+            [recipeId]  // ✅ FIX: Use recipeId directly (it's the firebase_id from URL)
         );
-
+        
         // Delete recipe
         await client.query(
-            'DELETE FROM recipes WHERE firebase_id = $1',
+            'DELETE FROM recipes WHERE id = $1',  // ✅ FIX: Changed 'firebase_id' to 'id'
             [recipeId]
         );
 
