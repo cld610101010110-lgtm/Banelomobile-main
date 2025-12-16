@@ -104,12 +104,8 @@ fun InventoryTransferScreen(
                     0 -> InventoryATab(productViewModel)
                     1 -> InventoryBTab(productViewModel)
                     2 -> TransferTab(productViewModel) { quantity, product ->
-                        productViewModel.transferInventory(product.firebaseId, quantity) { result ->
+                        productViewModel.transferInventory(product.id, quantity) { result ->
                             if (result.isSuccess) {
-                                // 🆕 ADD: Log transfer to audit trail
-                                AuditHelper.logTransfer(product.name, quantity)
-                                android.util.Log.d("InventoryTransfer", "✅ Transfer logged to audit trail")
-
                                 transferSuccessMessage = "Transferred $quantity units of ${product.name} to display inventory"
                                 showSuccessDialog = true
                             } else {
@@ -539,15 +535,6 @@ fun TransferProductCard(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF6F4E37)
                     )
-                    if (product.isPerishable) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "⏰ Shelf Life: ${product.shelfLifeDays} days",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFB71C1C)
-                        )
-                    }
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = transferQuantity,
