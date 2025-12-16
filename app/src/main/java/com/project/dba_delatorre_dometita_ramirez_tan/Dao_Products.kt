@@ -39,7 +39,5 @@ interface Dao_Products {
     suspend fun getProductByFirebaseId(firebaseId: String): Entity_Products?
 
     @Query("SELECT * FROM products WHERE id = :productId LIMIT 1")
-    suspend fun getProductById(productId: Int): Entity_Products?
-
-
+    suspend fun getProductById(productId: String): Entity_Products?
 }

@@ -385,15 +385,15 @@ class ProductRepository(
 
     // ============ TRANSFER INVENTORY (A → B) ============
 
-    suspend fun transferInventory(productFirebaseId: String, quantity: Int): Result<Unit> {
+    suspend fun transferInventory(productId: String, quantity: Int): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
                 Log.d(tag, "🔄 Transferring inventory A → B...")
-                Log.d(tag, "Product Firebase ID: $productFirebaseId")
+                Log.d(tag, "Product ID: $productId")
                 Log.d(tag, "Quantity to transfer: $quantity")
 
-                val product = daoProducts.getProductByFirebaseId(productFirebaseId)
+                val product = daoProducts.getProductById(productId)
 
                 if (product == null) {
                     Log.w(tag, "⚠️ Product not found!")

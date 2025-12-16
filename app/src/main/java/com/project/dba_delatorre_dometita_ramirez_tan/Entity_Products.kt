@@ -5,8 +5,8 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "products")
 data class Entity_Products(
-    val id: Int = 0,
-    @PrimaryKey val firebaseId: String = "",
+    @PrimaryKey val id: String = "",               // ✅ UUID String from PostgreSQL (primary key)
+    val firebaseId: String = "",                   // Legacy field - kept for backward compatibility but not used
     val name: String,
     val category: String,
     val price: Double,

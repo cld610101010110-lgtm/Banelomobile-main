@@ -175,13 +175,13 @@
                         WelcomeLogo(navController = navController)
                     }
 
-                    composable("EditProductScreen/{firebaseId}") { backStackEntry ->
-                        val firebaseId = backStackEntry.arguments?.getString("firebaseId") ?: ""
+                    composable("EditProductScreen/{id}") { backStackEntry ->
+                        val productId = backStackEntry.arguments?.getString("id") ?: ""
 
                         // ✅ Check access before showing screen
-                        if (RoleManager.canAccessRoute("EditProductScreen/$firebaseId")) {
+                        if (RoleManager.canAccessRoute("EditProductScreen/$productId")) {
                             val products = productViewModel.productList
-                            val product = products.find { it.firebaseId == firebaseId }
+                            val product = products.find { it.id == productId }
 
                             if (product != null) {
                                 EditProductScreen(

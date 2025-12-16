@@ -56,7 +56,7 @@ fun InventoryListScreen(
 
         android.util.Log.d("InventoryList", "📊 Products in UI:")
         viewModel3.productList.forEach { product ->
-            android.util.Log.d("InventoryList", "  • ${product.firebaseId}: ${product.name} (Qty: ${product.quantity})")
+            android.util.Log.d("InventoryList", "  • ${product.id}: ${product.name} (Qty: ${product.quantity})")
         }
     }
 
@@ -71,12 +71,12 @@ fun InventoryListScreen(
             }
             .forEach { product ->
                 try {
-                    val maxServings = recipeViewModel.getAvailableQuantity(product.firebaseId)
-                    newMaxServingsMap[product.firebaseId] = maxServings
+                    val maxServings = recipeViewModel.getAvailableQuantity(product.id)
+                    newMaxServingsMap[product.id] = maxServings
                     android.util.Log.d("InventoryList", "📊 ${product.name}: $maxServings servings available")
                 } catch (e: Exception) {
                     android.util.Log.e("InventoryList", "❌ Error calculating servings for ${product.name}: ${e.message}")
-                    newMaxServingsMap[product.firebaseId] = 0
+                    newMaxServingsMap[product.id] = 0
                 }
             }
 
@@ -113,7 +113,7 @@ fun InventoryListScreen(
                 when {
                     it.category.equals("Beverages", ignoreCase = true) ||
                             it.category.equals("Pastries", ignoreCase = true) -> {
-                        (maxServingsMap[it.firebaseId] ?: 0) > 0
+                        (maxServingsMap[it.id] ?: 0) > 0
                     }
                     else -> it.quantity > 0
                 }
@@ -356,7 +356,7 @@ fun InventoryListScreen(
                                                             product.category.equals("Beverages", ignoreCase = true) ||
                                                                     product.category.equals("Pastries", ignoreCase = true) -> {
                                                                 // Use calculated max servings from recipe
-                                                                val maxServings = maxServingsMap[product.firebaseId] ?: 0
+                                                                val maxServings = maxServingsMap[product.id] ?: 0
                                                                 "Available: $maxServings servings"
                                                             }
                                                             else -> "${product.quantity} pcs"
@@ -411,7 +411,7 @@ fun InventoryListScreen(
                                         val isOutOfStock = when {
                                             product.category.equals("Beverages", ignoreCase = true) ||
                                                     product.category.equals("Pastries", ignoreCase = true) -> {
-                                                (maxServingsMap[product.firebaseId] ?: 0) == 0
+                                                (maxServingsMap[product.id] ?: 0) == 0
                                             }
                                             else -> product.quantity == 0
                                         }
@@ -431,8 +431,8 @@ fun InventoryListScreen(
                                     Column {
                                         IconButton(onClick = {
                                             android.util.Log.d("InventoryList", "🖊️ Editing product: ${product.name}")
-                                            android.util.Log.d("InventoryList", "Firebase ID: ${product.firebaseId}")
-                                            navController.navigate("EditProductScreen/${product.firebaseId}")
+                                            android.util.Log.d("InventoryList", "Product ID: ${product.id}")
+                                            navController.navigate("EditProductScreen/${product.id}")
                                         }) {
                                             Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6D4C41))
                                         }

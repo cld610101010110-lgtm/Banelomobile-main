@@ -104,7 +104,7 @@ fun InventoryTransferScreen(
                     0 -> InventoryATab(productViewModel)
                     1 -> InventoryBTab(productViewModel)
                     2 -> TransferTab(productViewModel) { quantity, product ->
-                        productViewModel.transferInventory(product.firebaseId, quantity) { result ->
+                        productViewModel.transferInventory(product.id, quantity) { result ->
                             if (result.isSuccess) {
                                 transferSuccessMessage = "Transferred $quantity units of ${product.name} to display inventory"
                                 showSuccessDialog = true
