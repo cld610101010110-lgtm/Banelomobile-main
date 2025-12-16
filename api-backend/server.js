@@ -679,6 +679,8 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
+        console.log(`[UPDATE] Looking for recipe: ${recipeId}`);
+
         // Get recipe - Cast both sides to text
         const recipe = await client.query(
             'SELECT * FROM recipes WHERE id::text = $1::text OR firebase_id::text = $1::text',
@@ -690,9 +692,10 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
         }
         
         const numericRecipeId = recipe.rows[0].id;
+        console.log(`[UPDATE] Found recipe with id: ${numericRecipeId}, firebase_id: ${recipe.rows[0].firebase_id}`);
         
-        // Update recipe - Cast both sides to text
-        await client.query(
+        // Update recipe
+        const updateResult = await client.query(
             `UPDATE recipes
              SET product_firebase_id = (SELECT id FROM products WHERE firebase_id::text = $1::text LIMIT 1),
                  product_name = $2,
@@ -701,13 +704,22 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
             [productFirebaseId, productName, numericRecipeId]
         );
         
-        // DELETE OLD INGREDIENTS - FIX: Cast both sides to text!
+        console.log(`[UPDATE] Rows updated: ${updateResult.rowCount}`);
+        
+        if (updateResult.rowCount === 0) {
+            console.log(`[UPDATE] WARNING: No rows were updated! WHERE id = ${numericRecipeId} didn't match anything`);
+            throw new Error(`Failed to update recipe - no matching rows found for id: ${numericRecipeId}`);
+        }
+        
+        // DELETE OLD INGREDIENTS
         await client.query(
             'DELETE FROM recipe_ingredients WHERE recipe_firebase_id::text = $1::text',
             [recipe.rows[0].firebase_id]
         );
 
-        // Insert new ingredients - Cast both sides to text
+        console.log(`[UPDATE] Deleted old ingredients for recipe_firebase_id: ${recipe.rows[0].firebase_id}`);
+
+        // Insert new ingredients
         for (const ingredient of ingredients) {
             await client.query(
                 `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id, 
@@ -723,7 +735,10 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
             );
         }
 
+        console.log(`[UPDATE] Inserted ${ingredients.length} new ingredients`);
+
         await client.query('COMMIT');
+        console.log(`[UPDATE] Transaction committed successfully`);
         res.json({ success: true, message: `Recipe for ${productName} updated successfully` });
 
     } catch (error) {
