@@ -679,9 +679,9 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get the numeric recipe ID first - Cast columns to text
+        // Get recipe - Cast both sides to text
         const recipe = await client.query(
-            'SELECT * FROM recipes WHERE id::text = $1 OR firebase_id::text = $1',
+            'SELECT * FROM recipes WHERE id::text = $1::text OR firebase_id::text = $1::text',
             [recipeId]
         );
         
@@ -691,31 +691,31 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
         
         const numericRecipeId = recipe.rows[0].id;
         
-        // Update recipe - Cast productFirebaseId to text for comparison
+        // Update recipe - Cast both sides to text
         await client.query(
             `UPDATE recipes
-             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id::text = $1 LIMIT 1),
+             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id::text = $1::text LIMIT 1),
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = $3`,
             [productFirebaseId, productName, numericRecipeId]
         );
         
-        // Delete old ingredients
+        // DELETE OLD INGREDIENTS - FIX: Cast both sides to text!
         await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id::text = $1::text',
             [recipe.rows[0].firebase_id]
         );
 
-        // Insert new ingredients - Cast firebase_id to text for comparisons
+        // Insert new ingredients - Cast both sides to text
         for (const ingredient of ingredients) {
             await client.query(
                 `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id, 
                                                  ingredient_name, quantity_needed, unit)
-                 VALUES ($1, (SELECT id FROM products WHERE firebase_id::text = $2 LIMIT 1), $3, $4, $5)`,
+                 VALUES ($1, (SELECT id FROM products WHERE firebase_id::text = $2::text LIMIT 1), $3, $4, $5)`,
                 [
                     recipe.rows[0].firebase_id,
-                    ingredient.ingredientFirebaseId,  // ✅ Will be cast to text in query
+                    ingredient.ingredientFirebaseId,
                     ingredient.ingredientName,
                     ingredient.quantityNeeded,
                     ingredient.unit || 'g'
