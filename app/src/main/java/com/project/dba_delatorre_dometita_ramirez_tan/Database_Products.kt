@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Entity_AuditLog::class,
         Entity_WasteLog::class
     ],
-    version = 32,
+    version = 32
     exportSchema = false
 )
 abstract class Database_Products : RoomDatabase() {

@@ -10,7 +10,7 @@ data class Entity_Recipe(
 
     val firebaseId: String? = "",
 
-    val productFirebaseId: String? = "",
+    val productId: String? = "",                    // ✅ UUID id of the product (replaces productFirebaseId)
 
     val productName: String? = ""
 )
