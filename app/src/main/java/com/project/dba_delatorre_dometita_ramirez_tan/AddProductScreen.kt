@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -57,6 +58,11 @@ fun AddProductScreen(
     var showDialog by remember { mutableStateOf(false) }
     var isUploadingImage by remember { mutableStateOf(false) }
 
+    // 🆕 PERISHABLE FIELDS
+    var isPerishable by remember { mutableStateOf(false) }
+    var shelfLifeDays by remember { mutableStateOf("") }
+    var shelfLifeError by remember { mutableStateOf(false) }
+
     // Dropdown state
     var expandedCategory by remember { mutableStateOf(false) }
     val categories = listOf("Ingredients", "Beverages", "Pastries")
@@ -72,23 +78,8 @@ fun AddProductScreen(
         uri?.let {
             selectedImageUri = it
             imageError = false
-            isUploadingImage = true
-
-            // ✅ Upload to Cloudinary
-            scope.launch {
-                try {
-                    android.util.Log.d("AddProductScreen", "📤 Uploading image to Cloudinary...")
-                    val cloudinaryUrl = CloudinaryHelper.uploadImage(it)
-                    uploadedImageUrl = cloudinaryUrl
-                    isUploadingImage = false
-                    android.util.Log.d("AddProductScreen", "✅ Image uploaded successfully: $cloudinaryUrl")
-                } catch (e: Exception) {
-                    android.util.Log.e("AddProductScreen", "❌ Cloudinary upload failed: ${e.message}")
-                    imageError = true
-                    isUploadingImage = false
-                    selectedImageUri = null
-                }
-            }
+            // 🆕 FIX: Don't upload immediately - just store the URI
+            android.util.Log.d("AddProductScreen", "📸 Image selected (not uploaded yet): $it")
         }
     }
 
@@ -310,6 +301,58 @@ fun AddProductScreen(
                             )
                             if (quantityError) Text("Required", color = Color.Red, fontSize = 12.sp)
 
+                            // 🆕 PERISHABLE SECTION - Only show for Ingredients category
+                            if (productCategory.equals("Ingredients", ignoreCase = true)) {
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    "Perishable Product",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF6B3E2E)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = isPerishable,
+                                        onCheckedChange = { isPerishable = it },
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "This product is perishable",
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF6B3E2E)
+                                    )
+                                }
+
+                                if (isPerishable) {
+                                    OutlinedTextField(
+                                        value = shelfLifeDays,
+                                        onValueChange = {
+                                            if (it.isEmpty() || it.matches(Regex("^\\d+$"))) {
+                                                shelfLifeDays = it
+                                                shelfLifeError = false
+                                            }
+                                        },
+                                        label = { Text("Shelf Life (days)") },
+                                        isError = shelfLifeError,
+                                        modifier = textFieldModifier,
+                                        shape = RoundedCornerShape(20.dp),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        suffix = { Text("days") }
+                                    )
+                                    if (shelfLifeError) Text("Required if perishable", color = Color.Red, fontSize = 12.sp)
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Button(
@@ -318,33 +361,64 @@ fun AddProductScreen(
                                     categoryError = productCategory.isBlank()
                                     priceError = productPrice.isBlank()
                                     quantityError = productQuantity.isBlank()
-                                    imageError = uploadedImageUrl == null
+                                    imageError = selectedImageUri == null
 
-                                    val isValid = !(nameError || categoryError || priceError || quantityError || imageError)
+                                    // 🆕 ADD: Check shelf life if perishable
+                                    shelfLifeError = isPerishable && shelfLifeDays.isBlank()
+
+                                    val isValid = !(nameError || categoryError || priceError || quantityError || imageError || shelfLifeError)
 
                                     if (isValid) {
-                                        android.util.Log.d("AddProductScreen", "🆕 Creating new product...")
-                                        android.util.Log.d("AddProductScreen", "Cloudinary image URL: $uploadedImageUrl")
+                                        // 🆕 FIX: Wrap image upload in coroutine
+                                        scope.launch {
+                                            isUploadingImage = true
 
-                                        val qty = productQuantity.toInt()
-                                        viewModel3.insertProduct(
-                                            Entity_Products(
-                                                name = productName.trim(),
-                                                category = productCategory.trim(),
-                                                price = productPrice.toDouble(),
-                                                quantity = qty,
-                                                inventoryA = qty, // All new stock goes to Inventory A (warehouse)
-                                                inventoryB = 0,   // Inventory B starts empty (transfer later)
-                                                image_uri = uploadedImageUrl // ✅ Use Cloudinary URL
+                                            // 🆕 UPLOAD IMAGE ONLY ON SAVE
+                                            var finalImageUrl: String? = null
+                                            try {
+                                                android.util.Log.d("AddProductScreen", "📤 Uploading image to Cloudinary on save...")
+                                                finalImageUrl = CloudinaryHelper.uploadImage(selectedImageUri!!)
+                                                android.util.Log.d("AddProductScreen", "✅ Image uploaded: $finalImageUrl")
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("AddProductScreen", "❌ Image upload failed: ${e.message}")
+                                                imageError = true
+                                                isUploadingImage = false
+                                                return@launch
+                                            }
+
+                                            isUploadingImage = false
+
+                                            if (finalImageUrl == null) {
+                                                imageError = true
+                                                return@launch
+                                            }
+
+                                            android.util.Log.d("AddProductScreen", "🆕 Creating new product...")
+                                            android.util.Log.d("AddProductScreen", "Cloudinary image URL: $finalImageUrl")
+                                            android.util.Log.d("AddProductScreen", "🔬 Perishable: $isPerishable, Shelf Life: $shelfLifeDays days")
+
+                                            val qty = productQuantity.toInt()
+                                            viewModel3.insertProduct(
+                                                Entity_Products(
+                                                    name = productName.trim(),
+                                                    category = productCategory.trim(),
+                                                    price = productPrice.toDouble(),
+                                                    quantity = qty,
+                                                    inventoryA = qty,
+                                                    inventoryB = 0,
+                                                    image_uri = finalImageUrl,
+                                                    // 🆕 ADD PERISHABLE FIELDS:
+                                                    isPerishable = isPerishable,
+                                                    shelfLifeDays = if (isPerishable) shelfLifeDays.toInt() else 0
+                                                )
                                             )
-                                        )
-                                        // ✅ ADD THIS - Log product addition to audit trail
-                                        AuditHelper.logProductAdd(productName.trim())
-                                        android.util.Log.d("AddProductScreen", "✅ Audit trail logged for product add")
-                                        showDialog = true
+                                            AuditHelper.logProductAdd(productName.trim())
+                                            android.util.Log.d("AddProductScreen", "✅ Audit trail logged for product add")
+                                            showDialog = true
+                                        }
                                     }
                                 },
-                                enabled = !isUploadingImage, // ✅ Disable while uploading
+                                enabled = !isUploadingImage,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF5D4037),
                                     contentColor = Color.White
@@ -355,6 +429,7 @@ fun AddProductScreen(
                             ) {
                                 Text("Save Product")
                             }
+
 
                             OutlinedButton(
                                 onClick = { navController.popBackStack() },

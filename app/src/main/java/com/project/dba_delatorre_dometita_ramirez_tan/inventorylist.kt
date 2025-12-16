@@ -431,8 +431,9 @@ fun InventoryListScreen(
                                     Column {
                                         IconButton(onClick = {
                                             android.util.Log.d("InventoryList", "🖊️ Editing product: ${product.name}")
-                                            android.util.Log.d("InventoryList", "Firebase ID: ${product.firebaseId}")
-                                            navController.navigate("EditProductScreen/${product.firebaseId}")
+                                            android.util.Log.d("InventoryList", "Firebase ID: ${product.id}")
+                                            navController.navigate("EditProductScreen/${product.id}")
+
                                         }) {
                                             Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6D4C41))
                                         }

@@ -416,10 +416,25 @@ class ProductRepository(
 
                 Log.d(tag, "   After - Inventory A: $newInventoryA, Inventory B: $newInventoryB")
 
+                // 🆕 CALCULATE EXPIRATION DATE IF PERISHABLE
+                val expirationDate = if (product.isPerishable && product.shelfLifeDays > 0) {
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    val calendar = java.util.Calendar.getInstance()
+                    calendar.add(java.util.Calendar.DAY_OF_MONTH, product.shelfLifeDays)
+                    sdf.format(calendar.time)
+                } else {
+                    null
+                }
+
+                Log.d(tag, "🔬 Perishable: ${product.isPerishable}, Expiration: $expirationDate")
+
                 // Update Room
                 val updatedProduct = product.copy(
                     inventoryA = newInventoryA,
-                    inventoryB = newInventoryB
+                    inventoryB = newInventoryB,
+                    // 🆕 ADD: Set expiration date and transferred flag
+                    expirationDate = expirationDate,
+                    transferredToB = true
                 )
                 daoProducts.updateProduct(updatedProduct)
 
@@ -455,6 +470,7 @@ class ProductRepository(
             }
         }
     }
+
 
     // ============ SALES OPERATIONS ============
 

@@ -23,6 +23,7 @@ object AuditActions {
     const val FAILED_LOGIN = "FAILED_LOGIN"
     const val SALE_TRANSACTION = "SALE_TRANSACTION"
     const val INVENTORY_UPDATE = "INVENTORY_UPDATE"
+    const val INVENTORY_TRANSFER = "INVENTORY_TRANSFER"
     const val PRODUCT_ADD = "PRODUCT_ADD"
     const val PRODUCT_EDIT = "PRODUCT_EDIT"
     const val PRODUCT_DELETE = "PRODUCT_DELETE"
