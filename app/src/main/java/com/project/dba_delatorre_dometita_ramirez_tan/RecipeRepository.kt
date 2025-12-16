@@ -43,7 +43,7 @@ class RecipeRepository(
                         val recipe = Entity_Recipe(
                             recipeId = 0, // Let Room auto-generate
                             firebaseId = apiRecipe.firebaseId ?: "",
-                            productFirebaseId = apiRecipe.productFirebaseId ?: "",
+                            productId = apiRecipe.productFirebaseId ?: "",
                             productName = apiRecipe.productName ?: ""
                         )
 
@@ -107,11 +107,11 @@ class RecipeRepository(
         }
     }
 
-    suspend fun getRecipeForProduct(productFirebaseId: String): RecipeWithIngredients? {
+    suspend fun getRecipeForProduct(productId: String): RecipeWithIngredients? {
         return try {
-            daoRecipe.getRecipeWithIngredients(productFirebaseId)
+            daoRecipe.getRecipeWithIngredients(productId)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting recipe for product $productFirebaseId: ${e.message}", e)
+            Log.e(TAG, "Error getting recipe for product $productId: ${e.message}", e)
             null
         }
     }
