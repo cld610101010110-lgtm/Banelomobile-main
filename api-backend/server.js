@@ -698,12 +698,12 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = $3::uuid`,
-            [productFirebaseId, productName, numericRecipeId]
+           [productFirebaseId, productName, numericRecipeId]         
         );
         
         // Delete old ingredients (ONLY ONE DELETE!)
         await client.query(
-            'DELETE FROM recipes WHERE id = $1::uuid',
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
             [numericRecipeId]  // ✅ Use the numeric ID from database
         );
 
@@ -756,18 +756,19 @@ app.delete('/api/recipes/:recipeId', async (req, res) => {
             throw new Error('Recipe not found');
         }
         
+        const numericRecipeId = recipe.rows[0].id; 
         const productName = recipe.rows[0].product_name;  // ✅ FIX: Changed 'recipeResult' to 'recipe'
         
         // Delete ingredients first
         await client.query(
             'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',  // ✅ FIX: Changed 'recipe_id' to 'recipe_firebase_id'
-            [recipeId]  // ✅ FIX: Use recipeId directly (it's the firebase_id from URL)
+           [numericRecipeId]  // ✅ FIX: Use recipeId directly (it's the firebase_id from URL)
         );
         
         // Delete recipe
         await client.query(
             'DELETE FROM recipes WHERE id = $1',  // ✅ FIX: Changed 'firebase_id' to 'id'
-            [numericRecipeId]
+            [numericRecipeId] 
         );
 
         await client.query('COMMIT');
