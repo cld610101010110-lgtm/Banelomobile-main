@@ -43,25 +43,25 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
     }
 
     // Calculate how many servings can be made for a product (using TOTAL stock: inventoryA + inventoryB)
-    suspend fun getAvailableQuantity(productFirebaseId: String): Int {
-        return repository.calculateMaxServings(productFirebaseId)
+    suspend fun getAvailableQuantity(productId: String): Int {
+        return repository.calculateMaxServings(productId)
     }
 
     // ✅ NEW METHOD: Calculate servings based ONLY on Inventory B
-    suspend fun getAvailableQuantityFromInventoryB(productFirebaseId: String): Int {
-        return repository.calculateMaxServingsFromInventoryB(productFirebaseId)
+    suspend fun getAvailableQuantityFromInventoryB(productId: String): Int {
+        return repository.calculateMaxServingsFromInventoryB(productId)
     }
 
     // Deduct ingredients when order is completed
-    fun processOrder(productFirebaseId: String, quantity: Int, saveToSales: (Entity_SalesReport) -> Unit) {
+    fun processOrder(productId: String, quantity: Int, saveToSales: (Entity_SalesReport) -> Unit) {
         viewModelScope.launch {
-            repository.deductIngredients(productFirebaseId, quantity, saveToSales)
+            repository.deductIngredients(productId, quantity, saveToSales)
         }
     }
 
     // Calculate recipe cost breakdown
-    suspend fun getRecipeCost(productFirebaseId: String): RecipeRepository.RecipeCostSummary? {
-        return repository.calculateRecipeCost(productFirebaseId)
+    suspend fun getRecipeCost(productId: String): RecipeRepository.RecipeCostSummary? {
+        return repository.calculateRecipeCost(productId)
     }
 }
 

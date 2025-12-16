@@ -120,18 +120,18 @@ class RecipeRepository(
 
     // ✅ Calculate max servings based on TOTAL stock (inventoryA + inventoryB)
     // Used for: InventoryListScreen - to show overall available servings
-    suspend fun calculateMaxServings(productFirebaseId: String): Int {
+    suspend fun calculateMaxServings(productId: String): Int {
         return try {
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
             Log.d(TAG, "🧮 Calculating max servings (TOTAL stock)...")
-            Log.d(TAG, "Product Firebase ID: $productFirebaseId")
+            Log.d(TAG, "Product ID: $productId")
 
-            if (productFirebaseId.isBlank()) {
-                Log.w(TAG, "❌ Product Firebase ID is blank! Cannot find recipe.")
+            if (productId.isBlank()) {
+                Log.w(TAG, "❌ Product ID is blank! Cannot find recipe.")
                 return 0
             }
 
-            val recipe = daoRecipe.getRecipeByProductFirebaseId(productFirebaseId)
+            val recipe = daoRecipe.getRecipeByProductId(productId)
 
             if (recipe == null) {
                 Log.w(TAG, "❌ NO RECIPE FOUND IN ROOM!")
@@ -184,18 +184,18 @@ class RecipeRepository(
 
     // ✅ NEW METHOD: Calculate max servings based ONLY on Inventory B
     // Used for: OrderProcessScreen - customers can only order what's in display inventory
-    suspend fun calculateMaxServingsFromInventoryB(productFirebaseId: String): Int {
+    suspend fun calculateMaxServingsFromInventoryB(productId: String): Int {
         return try {
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
             Log.d(TAG, "🧮 Calculating max servings (INVENTORY B ONLY)...")
-            Log.d(TAG, "Product Firebase ID: $productFirebaseId")
+            Log.d(TAG, "Product ID: $productId")
 
-            if (productFirebaseId.isBlank()) {
-                Log.w(TAG, "❌ Product Firebase ID is blank! Cannot find recipe.")
+            if (productId.isBlank()) {
+                Log.w(TAG, "❌ Product ID is blank! Cannot find recipe.")
                 return 0
             }
 
-            val recipe = daoRecipe.getRecipeByProductFirebaseId(productFirebaseId)
+            val recipe = daoRecipe.getRecipeByProductId(productId)
 
             if (recipe == null) {
                 Log.w(TAG, "❌ NO RECIPE FOUND IN ROOM!")
@@ -249,13 +249,13 @@ class RecipeRepository(
 
     // ============ DEDUCT INGREDIENTS ON ORDER ============
 
-    suspend fun deductIngredients(productFirebaseId: String, quantity: Int, saveToSales: (Entity_SalesReport) -> Unit) {
+    suspend fun deductIngredients(productId: String, quantity: Int, saveToSales: (Entity_SalesReport) -> Unit) {
         try {
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━")
             Log.d(TAG, "🔻 Deducting ingredients for $quantity servings")
-            Log.d(TAG, "Product Firebase ID: $productFirebaseId")
+            Log.d(TAG, "Product ID: $productId")
 
-            val recipe = daoRecipe.getRecipeByProductFirebaseId(productFirebaseId)
+            val recipe = daoRecipe.getRecipeByProductId(productId)
 
             if (recipe == null) {
                 Log.w(TAG, "⚠️ No recipe found, cannot deduct ingredients")
@@ -384,17 +384,17 @@ class RecipeRepository(
         val profitPercentage: Double
     )
 
-    suspend fun calculateRecipeCost(productFirebaseId: String): RecipeCostSummary? {
+    suspend fun calculateRecipeCost(productId: String): RecipeCostSummary? {
         return try {
-            Log.d(TAG, "💰 Calculating recipe cost for: $productFirebaseId")
+            Log.d(TAG, "💰 Calculating recipe cost for: $productId")
 
-            val recipe = daoRecipe.getRecipeByProductFirebaseId(productFirebaseId)
+            val recipe = daoRecipe.getRecipeByProductId(productId)
             if (recipe == null) {
                 Log.w(TAG, "⚠️ No recipe found")
                 return null
             }
 
-            val product = daoProducts.getProductByFirebaseId(productFirebaseId)
+            val product = daoProducts.getProductById(productId)
             val sellingPrice = product?.price ?: 0.0
 
             val ingredients = daoRecipe.getIngredientsByRecipeId(recipe.recipeId)
