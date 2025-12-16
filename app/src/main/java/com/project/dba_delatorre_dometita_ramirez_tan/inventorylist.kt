@@ -71,8 +71,8 @@ fun InventoryListScreen(
             }
             .forEach { product ->
                 try {
-                    val maxServings = recipeViewModel.getAvailableQuantity(product.firebaseId)
-                    newMaxServingsMap[product.firebaseId] = maxServings
+                    val maxServings = recipeViewModel.getAvailableQuantity(product.id)
+                    newMaxServingsMap[product.id] = maxServings
                     android.util.Log.d("InventoryList", "📊 ${product.name}: $maxServings servings available")
                 } catch (e: Exception) {
                     android.util.Log.e("InventoryList", "❌ Error calculating servings for ${product.name}: ${e.message}")
@@ -113,7 +113,8 @@ fun InventoryListScreen(
                 when {
                     it.category.equals("Beverages", ignoreCase = true) ||
                             it.category.equals("Pastries", ignoreCase = true) -> {
-                        (maxServingsMap[it.firebaseId] ?: 0) > 0
+                        (maxServingsMap[it.id] ?: 0) > 0
+
                     }
                     else -> it.quantity > 0
                 }
@@ -127,7 +128,7 @@ fun InventoryListScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        drawerContent = { SidebarDrawer(navController) }
+        drawerContent = {SidebarDrawer(navController)}
     ) {
         Scaffold(
             floatingActionButton = {
@@ -356,7 +357,7 @@ fun InventoryListScreen(
                                                             product.category.equals("Beverages", ignoreCase = true) ||
                                                                     product.category.equals("Pastries", ignoreCase = true) -> {
                                                                 // Use calculated max servings from recipe
-                                                                val maxServings = maxServingsMap[product.firebaseId] ?: 0
+                                                                val maxServings = maxServingsMap[product.id] ?: 0
                                                                 "Available: $maxServings servings"
                                                             }
                                                             else -> "${product.quantity} pcs"
@@ -433,7 +434,6 @@ fun InventoryListScreen(
                                             android.util.Log.d("InventoryList", "🖊️ Editing product: ${product.name}")
                                             android.util.Log.d("InventoryList", "Firebase ID: ${product.id}")
                                             navController.navigate("EditProductScreen/${product.id}")
-
                                         }) {
                                             Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6D4C41))
                                         }

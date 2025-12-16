@@ -175,13 +175,13 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
                     WelcomeLogo(navController = navController)
                 }
 
-                composable("EditProductScreen/{firebaseId}") { backStackEntry ->
-                    val firebaseId = backStackEntry.arguments?.getString("firebaseId") ?: ""
+                composable("EditProductScreen/{id}") { backStackEntry ->
+                    val productId = backStackEntry.arguments?.getString("id") ?: ""
 
                     // ✅ Check access before showing screen
-                    if (RoleManager.canAccessRoute("EditProductScreen/$firebaseId")) {
+                    if (RoleManager.canAccessRoute("EditProductScreen/$productId")) {
                         val products = productViewModel.productList
-                        val product = products.find { it.firebaseId == firebaseId }
+                        val product = products.find { it.id == productId }
 
                         if (product != null) {
                             EditProductScreen(
@@ -201,10 +201,12 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
                             }
                         }
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Access Denied - Redirecting...", color = Color.Red)
+                            Text("Access Denied", color = Color.Red)
                         }
                     }
                 }
+
+
                 composable(Routes.OrderProcess.routes) {
                     // ✅ Check access before showing screen
                     if (RoleManager.canAccessRoute(Routes.OrderProcess.routes)) {
