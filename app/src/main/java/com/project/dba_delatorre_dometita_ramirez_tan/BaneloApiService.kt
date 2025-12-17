@@ -20,7 +20,12 @@ data class ProductRequest(
     val inventory_a: Int,
     val inventory_b: Int,
     val cost_per_unit: Double,
-    val image_uri: String = ""
+    val image_uri: String = "",
+    // 🆕 Perishable fields
+    val is_perishable: Boolean = false,
+    val shelf_life_days: Int = 0,
+    val expiration_date: String? = null,
+    val transferred_to_b: Boolean = false
 )
 
 data class ProductResponse(
@@ -34,7 +39,16 @@ data class ProductResponse(
     val inventory_b: Int,
     val cost_per_unit: Double,
     @SerializedName("image_uri")
-    val image_uri: String?
+    val image_uri: String?,
+    // 🆕 Perishable fields
+    @SerializedName("is_perishable")
+    val isPerishable: Boolean = false,
+    @SerializedName("shelf_life_days")
+    val shelfLifeDays: Int = 0,
+    @SerializedName("expiration_date")
+    val expirationDate: String? = null,
+    @SerializedName("transferred_to_b")
+    val transferredToB: Boolean = false
 )
 
 data class SalesRequest(

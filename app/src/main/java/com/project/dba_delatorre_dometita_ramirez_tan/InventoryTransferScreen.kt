@@ -500,6 +500,17 @@ fun TransferProductCard(
                         color = Color.Gray
                     )
                 }
+
+                // ✅ Show perishable info if applicable
+                if (product.isPerishable) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "⏰ Shelf Life: ${product.shelfLifeDays} days",
+                        fontSize = 12.sp,
+                        color = Color(0xFFB71C1C),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             // Transfer Button
