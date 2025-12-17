@@ -102,7 +102,12 @@ class ProductRepository(
                     inventory_a = product.inventoryA,
                     inventory_b = product.inventoryB,
                     cost_per_unit = product.costPerUnit,
-                    image_uri = cloudinaryImageUrl
+                    image_uri = cloudinaryImageUrl,
+                    // 🆕 Include perishable fields
+                    is_perishable = product.isPerishable,
+                    shelf_life_days = product.shelfLifeDays,
+                    expiration_date = product.expirationDate,
+                    transferred_to_b = product.transferredToB
                 )
 
                 // Step 3: Call API
@@ -242,7 +247,12 @@ class ProductRepository(
                     inventory_a = product.inventoryA,
                     inventory_b = product.inventoryB,
                     cost_per_unit = product.costPerUnit,
-                    image_uri = cloudinaryImageUrl
+                    image_uri = cloudinaryImageUrl,
+                    // 🆕 Include perishable fields
+                    is_perishable = product.isPerishable,
+                    shelf_life_days = product.shelfLifeDays,
+                    expiration_date = product.expirationDate,
+                    transferred_to_b = product.transferredToB
                 )
 
                 val result = BaneloApiService.safeCall {
@@ -358,7 +368,12 @@ class ProductRepository(
                     inventory_a = updatedProduct.inventoryA,
                     inventory_b = updatedProduct.inventoryB,
                     cost_per_unit = updatedProduct.costPerUnit,
-                    image_uri = updatedProduct.image_uri ?: ""
+                    image_uri = updatedProduct.image_uri ?: "",
+                    // 🆕 Include perishable fields
+                    is_perishable = updatedProduct.isPerishable,
+                    shelf_life_days = updatedProduct.shelfLifeDays,
+                    expiration_date = updatedProduct.expirationDate,
+                    transferred_to_b = updatedProduct.transferredToB
                 )
 
                 val apiResult = BaneloApiService.safeCall {
@@ -447,7 +462,12 @@ class ProductRepository(
                     inventory_a = newInventoryA,
                     inventory_b = newInventoryB,
                     cost_per_unit = updatedProduct.costPerUnit,
-                    image_uri = updatedProduct.image_uri ?: ""
+                    image_uri = updatedProduct.image_uri ?: "",
+                    // 🆕 Include perishable fields
+                    is_perishable = updatedProduct.isPerishable,
+                    shelf_life_days = updatedProduct.shelfLifeDays,
+                    expiration_date = updatedProduct.expirationDate,
+                    transferred_to_b = updatedProduct.transferredToB
                 )
 
                 val result = BaneloApiService.safeCall {
@@ -543,7 +563,12 @@ class ProductRepository(
             inventoryA = response.inventory_a ?: 0,
             inventoryB = response.inventory_b ?: 0,
             costPerUnit = response.cost_per_unit ?: 0.0,
-            image_uri = response.image_uri // nullable allowed
+            image_uri = response.image_uri, // nullable allowed
+            // 🆕 Include perishable fields from API response
+            isPerishable = response.isPerishable,
+            shelfLifeDays = response.shelfLifeDays,
+            expirationDate = response.expirationDate,
+            transferredToB = response.transferredToB
         )
     }
 }
