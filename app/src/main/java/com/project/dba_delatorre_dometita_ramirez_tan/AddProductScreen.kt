@@ -35,11 +35,7 @@ import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-// ✅ Generate unique firebaseId (20 chars alphanumeric like "54Nmuu1uaJ3R2CzlboB4")
-fun generateFirebaseId(): String {
-    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    return (1..20).map { chars[Random.nextInt(chars.length)] }.joinToString("")
-}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -406,7 +402,8 @@ fun AddProductScreen(
 
                                             val qty = productQuantity.toInt()
                                             // Generate a unique firebaseId (20 chars alphanumeric)
-                                            val generatedFirebaseId = generateFirebaseId()
+                                            val generatedFirebaseId = FirebaseIdUtil.generate()
+
                                             viewModel3.insertProduct(
                                                 Entity_Products(
                                                     firebaseId = generatedFirebaseId,
