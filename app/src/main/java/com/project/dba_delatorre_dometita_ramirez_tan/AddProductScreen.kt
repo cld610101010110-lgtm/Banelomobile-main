@@ -417,10 +417,13 @@ fun AddProductScreen(
                                                     quantity = qty,
                                                     inventoryA = qty,
                                                     inventoryB = 0,
+                                                    costPerUnit = 0.0,
                                                     image_uri = finalImageUrl,
                                                     // 🆕 ADD PERISHABLE FIELDS:
                                                     isPerishable = isPerishable,
-                                                    shelfLifeDays = if (isPerishable) shelfLifeDays.toInt() else 0
+                                                    shelfLifeDays = if (isPerishable) shelfLifeDays.toInt() else 0,
+                                                    expirationDate = null, // Will be set when transferred to B
+                                                    transferredToB = false // New products start in Inventory A
                                                 )
                                             )
                                             AuditHelper.logProductAdd(productName.trim())
