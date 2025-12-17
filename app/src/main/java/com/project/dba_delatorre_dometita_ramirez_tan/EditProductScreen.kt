@@ -32,6 +32,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
+import kotlin.random.Random
+
+// ✅ Generate unique firebaseId (20 chars alphanumeric)
+fun generateFirebaseId(): String {
+    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    return (1..20).map { chars[Random.nextInt(chars.length)] }.joinToString("")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -363,14 +370,20 @@ fun EditProductScreen(
                                     // ✅ Use uploadedImageUrl if new image was uploaded, otherwise keep current
                                     val finalImageUri = uploadedImageUrl ?: currentImageUrl ?: ""
 
-                                    // ✅ FIX: When adding quantity to ingredients, it should go to Inventory A
                                     val isIngredient = category.equals("Ingredients", ignoreCase = true)
                                     val quantityValue = quantity.toIntOrNull() ?: 0
                                     val shelfLifeValue = if (isPerishable) shelfLifeDays.toIntOrNull() ?: 0 else 0
 
+                                    // 🆕 If firebaseId is missing, generate one
+                                    val finalFirebaseId = if (productToEdit.firebaseId.isBlank()) {
+                                        generateFirebaseId()
+                                    } else {
+                                        productToEdit.firebaseId
+                                    }
+
                                     val updatedProduct = Entity_Products(
                                         id = productToEdit.id,
-                                        firebaseId = productToEdit.firebaseId,
+                                        firebaseId = finalFirebaseId,
                                         name = name.text,
                                         category = category,
                                         price = price.toDoubleOrNull() ?: 0.0,
@@ -382,9 +395,12 @@ fun EditProductScreen(
                                         inventoryA = if (isIngredient) quantityValue else productToEdit.inventoryA,
                                         inventoryB = productToEdit.inventoryB, // Keep existing B value
                                         costPerUnit = productToEdit.costPerUnit,
-                                        image_uri = finalImageUri // ✅ Use Cloudinary URL
+                                        image_uri = finalImageUri, // ✅ Use Cloudinary URL
+                                        expirationDate = productToEdit.expirationDate,
+                                        transferredToB = productToEdit.transferredToB
                                     )
 
+                                    android.util.Log.d("EditProductScreen", "Saving product with firebaseId: $finalFirebaseId")
                                     android.util.Log.d("EditProductScreen", "Saving product with imageUri: $finalImageUri")
                                     android.util.Log.d("EditProductScreen", "Inventory A: ${updatedProduct.inventoryA}, B: ${updatedProduct.inventoryB}")
                                     android.util.Log.d("EditProductScreen", "Perishable: ${updatedProduct.isPerishable}, ShelfLife: ${updatedProduct.shelfLifeDays} days")
