@@ -86,11 +86,22 @@ class ProductRepository(
             try {
                 Log.d(tag, "➕ Inserting product: ${product.name}")
 
-                // Step 1: Upload image if exists (only when non-null & non-empty)
-                val cloudinaryImageUrl = if (!product.image_uri.isNullOrEmpty()) {
-                    uploadImageToCloudinary(product.image_uri)
-                } else {
-                    ""
+                // Step 1: Handle image - check if already uploaded or needs upload
+                val cloudinaryImageUrl = when {
+                    product.image_uri.isNullOrEmpty() -> ""
+                    product.image_uri!!.startsWith("https://res.cloudinary.com") -> {
+                        // Already a Cloudinary URL — keep it as is
+                        product.image_uri
+                    }
+                    else -> {
+                        // Local file - upload to Cloudinary
+                        try {
+                            uploadImageToCloudinary(product.image_uri)
+                        } catch (e: Exception) {
+                            Log.e(tag, "❌ Image upload failed: ${e.message}")
+                            ""
+                        }
+                    }
                 }
 
                 // Step 2: Create request
