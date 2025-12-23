@@ -14,7 +14,7 @@ import com.google.gson.annotations.SerializedName
 
 data class ProductRequest(
     @SerializedName("firebase_id")
-    val firebase_id: String = "",
+    val firebase_id: String,
     val name: String,
     val category: String,
     val price: Double,
