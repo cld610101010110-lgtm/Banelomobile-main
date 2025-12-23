@@ -13,6 +13,7 @@ import com.google.gson.annotations.SerializedName
 // ============ DATA CLASSES (for API requests/responses) ============
 
 data class ProductRequest(
+    val firebase_id: String,
     val name: String,
     val category: String,
     val price: Double,

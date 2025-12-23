@@ -95,6 +95,7 @@ class ProductRepository(
 
                 // Step 2: Create request
                 val request = ProductRequest(
+                    firebase_id = product.firebaseId,
                     name = product.name,
                     category = product.category,
                     price = product.price,
@@ -240,6 +241,7 @@ class ProductRepository(
                 }
 
                 val request = ProductRequest(
+                    firebase_id = product.firebaseId,
                     name = product.name,
                     category = product.category,
                     price = product.price,
@@ -361,6 +363,7 @@ class ProductRepository(
 
                 // Update API
                 val request = ProductRequest(
+                    firebase_id = updatedProduct.firebaseId,
                     name = updatedProduct.name,
                     category = updatedProduct.category,
                     price = updatedProduct.price,

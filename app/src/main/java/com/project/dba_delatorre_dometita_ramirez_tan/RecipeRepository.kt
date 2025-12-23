@@ -316,6 +316,7 @@ class RecipeRepository(
                     daoProducts.updateProduct(updatedProduct)
 
                     val request = ProductRequest(
+                        firebase_id = updatedProduct.firebaseId,
                         name = updatedProduct.name,
                         category = updatedProduct.category,
                         price = updatedProduct.price,
