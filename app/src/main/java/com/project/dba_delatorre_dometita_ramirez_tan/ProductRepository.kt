@@ -85,6 +85,11 @@ class ProductRepository(
         withContext(Dispatchers.IO) {
             try {
                 Log.d(tag, "➕ Inserting product: ${product.name}")
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(tag, "🔑 Product Firebase ID received: ${product.firebaseId}")
+                Log.d(tag, "   Length: ${product.firebaseId.length}")
+                Log.d(tag, "   Is valid: ${product.firebaseId.isNotEmpty()}")
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
 
                 // Step 1: Handle image - check if already uploaded or needs upload
                 val cloudinaryImageUrl = when {
@@ -131,11 +136,16 @@ class ProductRepository(
                 if (result.isSuccess) {
                     val response = result.getOrNull()
                     Log.d(tag, "✅ Product inserted via API with ID: ${response?.firebaseId}")
+                    Log.d(tag, "   Response firebase_id: ${response?.firebaseId}")
+                    Log.d(tag, "   Response is_perishable: ${response?.isPerishable}")
+                    Log.d(tag, "   Response shelf_life_days: ${response?.shelfLifeDays}")
                 } else {
                     Log.e(tag, "❌ Insert failed: ${result.exceptionOrNull()?.message}")
+                    result.exceptionOrNull()?.printStackTrace()
                 }
             } catch (e: Exception) {
                 Log.e(tag, "❌ Insert failed: ${e.message}", e)
+                e.printStackTrace()
             }
         }
     }

@@ -423,6 +423,7 @@ fun AddProductScreen(
                                                     transferredToB = false // New products start in Inventory A
                                                 )
                                             )
+                                            android.util.Log.d("AddProductScreen", "📤 insertProduct() called with firebase_id: $generatedFirebaseId")
                                             AuditHelper.logProductAdd(productName.trim())
                                             android.util.Log.d("AddProductScreen", "✅ Audit trail logged for product add")
                                             showDialog = true
