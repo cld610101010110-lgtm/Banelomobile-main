@@ -377,30 +377,50 @@ app.post('/api/products/transfer', async (req, res) => {
 // SALES - WITH INGREDIENT-BASED DEDUCTION
 // ============================================================================
 
-// Get all sales (limited to last month for performance)
+// Get all sales (with optional date range filtering)
 app.get('/api/sales', async (req, res) => {
     try {
-        // Calculate date from 1 month ago
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const { date_from, date_to, limit = 10000 } = req.query;
+
+        let whereClause = '';
+        const params = [];
+
+        // If date_from is provided, add it to where clause
+        if (date_from) {
+            whereClause = `WHERE s.order_date >= $1`;
+            params.push(date_from);
+            
+            // If date_to is also provided
+            if (date_to) {
+                whereClause += ` AND s.order_date <= $2`;
+                params.push(date_to);
+            }
+        }
+
+        // Add limit parameter at the end
+        const limitParam = params.length + 1;
+        params.push(limit);
 
         const result = await pool.query(
             `SELECT s.*, p.name as product_name
              FROM sales s
              LEFT JOIN products p ON s.product_firebase_id = p.id
-             WHERE s.order_date >= $1
+             ${whereClause}
              ORDER BY s.order_date DESC
-             LIMIT 1000`,
-            [oneMonthAgo]
+             LIMIT $${limitParam}`,
+            params
         );
+
         res.json({
             success: true,
             data: result.rows,
             meta: {
-                from_date: oneMonthAgo.toISOString(),
-                record_count: result.rows.length
+                record_count: result.rows.length,
+                date_filter: date_from ? `From ${date_from}` : 'None (All data)',
+                limit_applied: limit
             }
         });
+
     } catch (error) {
         console.error('Error fetching sales:', error);
         res.status(500).json({ success: false, error: error.message });
