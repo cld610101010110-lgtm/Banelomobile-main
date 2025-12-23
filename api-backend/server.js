@@ -669,7 +669,7 @@ app.post('/api/recipes', async (req, res) => {
 
 
 // ============================================================================
-// UPDATE RECIPE - COMPLETE CORRECTED VERSION
+// UPDATE RECIPE
 // ============================================================================
 app.put('/api/recipes/:recipeId', async (req, res) => {
     const { recipeId } = req.params;
@@ -679,42 +679,54 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get the numeric recipe ID first
-        const recipe = await pool.query(
-            'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
+        console.log(`[UPDATE] Looking for recipe: ${recipeId}`);
+
+        // Get recipe - Cast both sides to text
+        const recipe = await client.query(
+            'SELECT * FROM recipes WHERE id::text = $1::text OR firebase_id::text = $1::text',
             [recipeId]
         );
-
-        if (recipeResult.rows.length === 0) {
+        
+        if (recipe.rows.length === 0) {
             throw new Error('Recipe not found');
         }
-
-        const numericRecipeId = recipeResult.rows[0].id;
-
+        
+        const numericRecipeId = recipe.rows[0].id;
+        console.log(`[UPDATE] Found recipe with id: ${numericRecipeId}, firebase_id: ${recipe.rows[0].firebase_id}`);
+        
         // Update recipe
-        await client.query(
+        const updateResult = await client.query(
             `UPDATE recipes
-             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1),
+             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id::text = $1::text LIMIT 1),
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE firebase_id = $3`,
-            [productFirebaseId, productName, recipeId]
+             WHERE id = $3`,
+            [productFirebaseId, productName, numericRecipeId]
+        );
+        
+        console.log(`[UPDATE] Rows updated: ${updateResult.rowCount}`);
+        
+        if (updateResult.rowCount === 0) {
+            console.log(`[UPDATE] WARNING: No rows were updated! WHERE id = ${numericRecipeId} didn't match anything`);
+            throw new Error(`Failed to update recipe - no matching rows found for id: ${numericRecipeId}`);
+        }
+        
+        // DELETE OLD INGREDIENTS
+        await client.query(
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id::text = $1::text',
+            [recipe.rows[0].firebase_id]
         );
 
-        // Delete old ingredients
-        await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
-            [numericRecipeId]
-        );
+        console.log(`[UPDATE] Deleted old ingredients for recipe_firebase_id: ${recipe.rows[0].firebase_id}`);
 
         // Insert new ingredients
         for (const ingredient of ingredients) {
             await client.query(
-                `INSERT INTO recipe_ingredients (recipe_id, ingredient_firebase_id, 
+                `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id, 
                                                  ingredient_name, quantity_needed, unit)
-                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
+                 VALUES ($1, (SELECT id FROM products WHERE firebase_id::text = $2::text LIMIT 1), $3, $4, $5)`,
                 [
-                    numericRecipeId,
+                    recipe.rows[0].firebase_id,
                     ingredient.ingredientFirebaseId,
                     ingredient.ingredientName,
                     ingredient.quantityNeeded,
@@ -723,8 +735,11 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
             );
         }
 
+        console.log(`[UPDATE] Inserted ${ingredients.length} new ingredients`);
+
         await client.query('COMMIT');
-        res.json({ success: true, message: `Recipe for ${productName} updated successfully `});
+        console.log(`[UPDATE] Transaction committed successfully`);
+        res.json({ success: true, message: `Recipe for ${productName} updated successfully` });
 
     } catch (error) {
         await client.query('ROLLBACK');
@@ -735,8 +750,14 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     }
 });
 
+
+
+
 // ============================================================================
 // DELETE RECIPE - COMPLETE CORRECTED VERSION
+// ============================================================================
+// ============================================================================
+// DELETE RECIPE
 // ============================================================================
 app.delete('/api/recipes/:recipeId', async (req, res) => {
     const { recipeId } = req.params;
@@ -745,33 +766,33 @@ app.delete('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get recipe info
-        const recipe = await pool.query(
-        'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
-        [recipeId]
+        // Get recipe info - FIX: Cast columns to text
+        const recipe = await client.query(
+            'SELECT * FROM recipes WHERE id::text = $1 OR firebase_id::text = $1',
+            [recipeId]
         );
-
-        if (recipeResult.rows.length === 0) {
+        
+        if (recipe.rows.length === 0) {
             throw new Error('Recipe not found');
         }
-
-        const numericRecipeId = recipeResult.rows[0].id;
-        const productName = recipeResult.rows[0].product_name;
-
+        
+        const numericRecipeId = recipe.rows[0].id;
+        const productName = recipe.rows[0].product_name;
+        
         // Delete ingredients first
         await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
+            [recipe.rows[0].firebase_id]
+        );
+        
+        // Delete recipe
+        await client.query(
+            'DELETE FROM recipes WHERE id = $1',
             [numericRecipeId]
         );
 
-        // Delete recipe
-        await client.query(
-            'DELETE FROM recipes WHERE firebase_id = $1',
-            [recipeId]
-        );
-
         await client.query('COMMIT');
-        res.json({ success: true, message: `Recipe for ${productName} deleted successfully `});
+        res.json({ success: true, message: `Recipe for ${productName} deleted successfully` });
 
     } catch (error) {
         await client.query('ROLLBACK');

@@ -91,16 +91,27 @@ class ProductRepository(
                 Log.d(tag, "   Is valid: ${product.firebaseId.isNotEmpty()}")
                 Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
 
-                // Step 1: Upload image if exists (only when non-null & non-empty)
-                val cloudinaryImageUrl = if (!product.image_uri.isNullOrEmpty()) {
-                    uploadImageToCloudinary(product.image_uri)
-                } else {
-                    ""
+                // Step 1: Handle image - check if already uploaded or needs upload
+                val cloudinaryImageUrl = when {
+                    product.image_uri.isNullOrEmpty() -> ""
+                    product.image_uri!!.startsWith("https://res.cloudinary.com") -> {
+                        // Already a Cloudinary URL — keep it as is
+                        product.image_uri
+                    }
+                    else -> {
+                        // Local file - upload to Cloudinary
+                        try {
+                            uploadImageToCloudinary(product.image_uri)
+                        } catch (e: Exception) {
+                            Log.e(tag, "❌ Image upload failed: ${e.message}")
+                            ""
+                        }
+                    }
                 }
 
                 // Step 2: Create request
                 val request = ProductRequest(
-                    firebase_id = product.firebaseId,
+                    firebase_id = product.firebaseId,  // ✅ INCLUDE THE FIREBASEID!
                     name = product.name,
                     category = product.category,
                     price = product.price,
@@ -116,14 +127,6 @@ class ProductRepository(
                     transferred_to_b = product.transferredToB
                 )
 
-                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
-                Log.d(tag, "📦 API Request being sent:")
-                Log.d(tag, "   firebase_id: ${request.firebase_id}")
-                Log.d(tag, "   name: ${request.name}")
-                Log.d(tag, "   is_perishable: ${request.is_perishable}")
-                Log.d(tag, "   shelf_life_days: ${request.shelf_life_days}")
-                Log.d(tag, "   quantity: ${request.quantity}")
-                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
 
                 // Step 3: Call API
                 val result = BaneloApiService.safeCall {
@@ -477,6 +480,7 @@ class ProductRepository(
 
                 // Update API
                 val request = ProductRequest(
+                    firebase_id = updatedProduct.firebaseId,
                     name = updatedProduct.name,
                     category = updatedProduct.category,
                     price = updatedProduct.price,
