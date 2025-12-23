@@ -13,7 +13,8 @@ import com.google.gson.annotations.SerializedName
 // ============ DATA CLASSES (for API requests/responses) ============
 
 data class ProductRequest(
-    val firebase_id: String,
+    @SerializedName("firebase_id")
+    val firebase_id: String = "",
     val name: String,
     val category: String,
     val price: Double,
@@ -23,11 +24,16 @@ data class ProductRequest(
     val cost_per_unit: Double,
     val image_uri: String = "",
     // 🆕 Perishable fields
+    @SerializedName("is_perishable")
     val is_perishable: Boolean = false,
+    @SerializedName("shelf_life_days")
     val shelf_life_days: Int = 0,
+    @SerializedName("expiration_date")
     val expiration_date: String? = null,
+    @SerializedName("transferred_to_b")
     val transferred_to_b: Boolean = false
 )
+
 
 data class ProductResponse(
     @SerializedName("firebase_id")

@@ -106,7 +106,7 @@ class ProductRepository(
 
                 // Step 2: Create request
                 val request = ProductRequest(
-                    firebase_id = product.firebaseId,
+                    firebase_id = product.firebaseId,  // ✅ INCLUDE THE FIREBASEID!
                     name = product.name,
                     category = product.category,
                     price = product.price,
@@ -121,6 +121,7 @@ class ProductRepository(
                     expiration_date = product.expirationDate,
                     transferred_to_b = product.transferredToB
                 )
+
 
                 // Step 3: Call API
                 val result = BaneloApiService.safeCall {
@@ -252,7 +253,7 @@ class ProductRepository(
                 }
 
                 val request = ProductRequest(
-                    firebase_id = product.firebaseId,
+                    
                     name = product.name,
                     category = product.category,
                     price = product.price,
@@ -374,7 +375,6 @@ class ProductRepository(
 
                 // Update API
                 val request = ProductRequest(
-                    firebase_id = updatedProduct.firebaseId,
                     name = updatedProduct.name,
                     category = updatedProduct.category,
                     price = updatedProduct.price,
