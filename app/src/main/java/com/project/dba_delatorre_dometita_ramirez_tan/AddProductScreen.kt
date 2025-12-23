@@ -407,6 +407,13 @@ fun AddProductScreen(
                                             val qty = productQuantity.toInt()
                                             // Generate a unique firebaseId (20 chars alphanumeric)
                                             val generatedFirebaseId = generateFirebaseId()
+
+                                            android.util.Log.d("AddProductScreen", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                                            android.util.Log.d("AddProductScreen", "🔑 Generated Firebase ID: $generatedFirebaseId")
+                                            android.util.Log.d("AddProductScreen", "   Length: ${generatedFirebaseId.length}")
+                                            android.util.Log.d("AddProductScreen", "   Is alphanumeric: ${generatedFirebaseId.all { it.isLetterOrDigit() }}")
+                                            android.util.Log.d("AddProductScreen", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
                                             viewModel3.insertProduct(
                                                 Entity_Products(
                                                     firebaseId = generatedFirebaseId,
@@ -426,6 +433,7 @@ fun AddProductScreen(
                                                     transferredToB = false // New products start in Inventory A
                                                 )
                                             )
+                                            android.util.Log.d("AddProductScreen", "📤 insertProduct() called with firebase_id: $generatedFirebaseId")
                                             AuditHelper.logProductAdd(productName.trim())
                                             android.util.Log.d("AddProductScreen", "✅ Audit trail logged for product add")
                                             showDialog = true

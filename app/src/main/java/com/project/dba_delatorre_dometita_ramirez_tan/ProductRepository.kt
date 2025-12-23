@@ -85,6 +85,11 @@ class ProductRepository(
         withContext(Dispatchers.IO) {
             try {
                 Log.d(tag, "➕ Inserting product: ${product.name}")
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(tag, "🔑 Product Firebase ID received: ${product.firebaseId}")
+                Log.d(tag, "   Length: ${product.firebaseId.length}")
+                Log.d(tag, "   Is valid: ${product.firebaseId.isNotEmpty()}")
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
 
                 // Step 1: Upload image if exists (only when non-null & non-empty)
                 val cloudinaryImageUrl = if (!product.image_uri.isNullOrEmpty()) {
@@ -111,6 +116,15 @@ class ProductRepository(
                     transferred_to_b = product.transferredToB
                 )
 
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(tag, "📦 API Request being sent:")
+                Log.d(tag, "   firebase_id: ${request.firebase_id}")
+                Log.d(tag, "   name: ${request.name}")
+                Log.d(tag, "   is_perishable: ${request.is_perishable}")
+                Log.d(tag, "   shelf_life_days: ${request.shelf_life_days}")
+                Log.d(tag, "   quantity: ${request.quantity}")
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+
                 // Step 3: Call API
                 val result = BaneloApiService.safeCall {
                     BaneloApiService.api.createProduct(request)
@@ -119,11 +133,16 @@ class ProductRepository(
                 if (result.isSuccess) {
                     val response = result.getOrNull()
                     Log.d(tag, "✅ Product inserted via API with ID: ${response?.firebaseId}")
+                    Log.d(tag, "   Response firebase_id: ${response?.firebaseId}")
+                    Log.d(tag, "   Response is_perishable: ${response?.isPerishable}")
+                    Log.d(tag, "   Response shelf_life_days: ${response?.shelfLifeDays}")
                 } else {
                     Log.e(tag, "❌ Insert failed: ${result.exceptionOrNull()?.message}")
+                    result.exceptionOrNull()?.printStackTrace()
                 }
             } catch (e: Exception) {
                 Log.e(tag, "❌ Insert failed: ${e.message}", e)
+                e.printStackTrace()
             }
         }
     }

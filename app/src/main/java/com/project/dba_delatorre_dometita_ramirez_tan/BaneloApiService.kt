@@ -245,14 +245,23 @@ object BaneloApiService {
     suspend fun <T> safeCall(call: suspend () -> ApiResponse<T>): Result<T> {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d("BaneloAPI", "📡 Making API call...")
                 val response = call()
+                Log.d("BaneloAPI", "📥 API Response received - success: ${response.success}")
+
                 if (response.success && response.data != null) {
+                    Log.d("BaneloAPI", "✅ API call successful, returning data")
                     Result.success(response.data)
                 } else {
-                    Result.failure(Exception(response.error ?: "Unknown error"))
+                    val errorMsg = response.error ?: "Unknown error"
+                    Log.e("BaneloAPI", "❌ API call failed - error: $errorMsg")
+                    Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {
-                Log.e("BaneloAPI", "API Error: ${e.message}", e)
+                Log.e("BaneloAPI", "━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.e("BaneloAPI", "❌ API Error: ${e.message}")
+                Log.e("BaneloAPI", "Exception type: ${e::class.simpleName}")
+                Log.e("BaneloAPI", "━━━━━━━━━━━━━━━━━━━━━━━━", e)
                 Result.failure(e)
             }
         }
