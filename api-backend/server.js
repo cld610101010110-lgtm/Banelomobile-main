@@ -178,7 +178,8 @@ app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT id, firebase_id, name, category, price, quantity,
-                    inventory_a, inventory_b, cost_per_unit, image_uri, description, sku
+                    inventory_a, inventory_b, cost_per_unit, image_uri, description, sku,
+                    is_perishable, shelf_life_days, expiration_date, created_at, updated_at
              FROM products
              WHERE is_active = true
              ORDER BY name`
@@ -189,6 +190,7 @@ app.get('/api/products', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 // Get products by category
 app.get('/api/products/category/:category', async (req, res) => {
@@ -231,9 +233,11 @@ app.get('/api/products/:firebaseId', async (req, res) => {
 
 // Create new product
 app.post('/api/products', async (req, res) => {
-    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, sku } = req.body;
+    const { firebase_id, name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, sku, is_perishable, shelf_life_days, expiration_date } = req.body;
 
     try {
+        console.log('📦 POST /api/products received:', { firebase_id, name, is_perishable, shelf_life_days });
+
         // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
         const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
         const finalQuantity = isRecipeBased ? 0 : quantity;
@@ -241,13 +245,15 @@ app.post('/api/products', async (req, res) => {
         const finalInventoryB = isRecipeBased ? 0 : inventory_b;
 
         const result = await pool.query(
-            `INSERT INTO products (name, category, price, quantity, inventory_a, inventory_b,
-                                  cost_per_unit, image_uri, description, sku, is_active)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+            `INSERT INTO products (firebase_id, name, category, price, quantity, inventory_a, inventory_b,
+                                  cost_per_unit, image_uri, description, sku, is_perishable, shelf_life_days,
+                                  expiration_date, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true)
              RETURNING *`,
-            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, sku]
+            [firebase_id, name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, sku, is_perishable || false, shelf_life_days || 0, expiration_date || null]
         );
 
+        console.log('✅ Product created with ID:', result.rows[0].firebase_id);
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('Error creating product:', error);
@@ -255,12 +261,15 @@ app.post('/api/products', async (req, res) => {
     }
 });
 
+
 // Update product
 app.put('/api/products/:firebaseId', async (req, res) => {
     const { firebaseId } = req.params;
-    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description } = req.body;
+    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, is_perishable, shelf_life_days, expiration_date } = req.body;
 
     try {
+        console.log('🔄 PUT /api/products/:firebaseId received:', { firebaseId, name, is_perishable, shelf_life_days });
+
         // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
         const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
         const isIngredient = category === 'Ingredients';
@@ -295,18 +304,21 @@ app.put('/api/products/:firebaseId', async (req, res) => {
             `UPDATE products
              SET name = $1, category = $2, price = $3, quantity = $4,
                  inventory_a = $5, inventory_b = $6, cost_per_unit = $7,
-                 image_uri = $8, description = $9, updated_at = CURRENT_TIMESTAMP
-             WHERE firebase_id = $10
+                 image_uri = $8, description = $9, is_perishable = $10,
+                 shelf_life_days = $11, expiration_date = $12, updated_at = CURRENT_TIMESTAMP
+             WHERE firebase_id = $13
              RETURNING *`,
-            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, firebaseId]
+            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, is_perishable || false, shelf_life_days || 0, expiration_date || null, firebaseId]
         );
 
+        console.log('✅ Product updated with ID:', firebaseId);
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 // Delete product (soft delete)
 app.delete('/api/products/:firebaseId', async (req, res) => {
