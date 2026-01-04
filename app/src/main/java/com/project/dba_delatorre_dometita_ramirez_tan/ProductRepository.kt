@@ -477,6 +477,7 @@ class ProductRepository(
 
                 // Update API
                 val request = ProductRequest(
+                    firebase_id = product.firebaseId,
                     name = updatedProduct.name,
                     category = updatedProduct.category,
                     price = updatedProduct.price,
@@ -488,9 +489,14 @@ class ProductRepository(
                     // 🆕 Include perishable fields
                     is_perishable = updatedProduct.isPerishable,
                     shelf_life_days = updatedProduct.shelfLifeDays,
-                    expiration_date = updatedProduct.expirationDate,
-                    transferred_to_b = updatedProduct.transferredToB
+                    expiration_date = expirationDate,
+                    transferred_to_b = true
                 )
+
+                Log.d(tag, "📤 Sending to API:")
+                Log.d(tag, "   firebase_id: ${request.firebase_id}")
+                Log.d(tag, "   transferred_to_b: ${request.transferred_to_b}")
+                Log.d(tag, "   expiration_date: ${request.expiration_date}")
 
                 val result = BaneloApiService.safeCall {
                     BaneloApiService.api.updateProduct(productFirebaseId, request)
