@@ -34,11 +34,8 @@ import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-// ✅ Generate unique firebaseId (20 chars alphanumeric)
-fun generateFirebaseId(): String {
-    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    return (1..20).map { chars[Random.nextInt(chars.length)] }.joinToString("")
-}
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -376,7 +373,8 @@ fun EditProductScreen(
 
                                     // 🆕 If firebaseId is missing, generate one
                                     val finalFirebaseId = if (productToEdit.firebaseId.isBlank()) {
-                                        generateFirebaseId()
+                                        FirebaseIdUtil.generate()
+
                                     } else {
                                         productToEdit.firebaseId
                                     }

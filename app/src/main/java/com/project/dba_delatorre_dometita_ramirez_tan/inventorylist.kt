@@ -108,19 +108,19 @@ fun InventoryListScreen(
                     (selectedOption == "All" || it.category.equals(selectedOption, ignoreCase = true))
         }
         .sortedWith(
-            compareByDescending<Entity_Products> {
-                // ✅ Use max servings for beverages/pastries, quantity for ingredients
-                when {
-                    it.category.equals("Beverages", ignoreCase = true) ||
-                            it.category.equals("Pastries", ignoreCase = true) -> {
-                        (maxServingsMap[it.id] ?: 0) > 0
-
+            compareBy<Entity_Products> { it.name }  // Sort A-Z first (all categories mixed)
+                .thenByDescending {
+                    // Then put available products at top, unavailable at bottom
+                    when {
+                        it.category.equals("Beverages", ignoreCase = true) ||
+                                it.category.equals("Pastries", ignoreCase = true) -> {
+                            (maxServingsMap[it.firebaseId] ?: 0) > 0
+                        }
+                        else -> it.quantity > 0
                     }
-                    else -> it.quantity > 0
                 }
-            }  // Available first
-                .thenBy { it.name }  // Then A-Z within each group
         )
+
 
     val gradient = Brush.verticalGradient(
         colors = listOf(Color(0xFFF3D3BD), Color(0xFF837060))

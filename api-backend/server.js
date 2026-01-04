@@ -1,17 +1,25 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+/* 🔥 GLOBAL MIDDLEWARE — MUST BE HERE */
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json()); // ✅ THIS FIXES req.body
+app.use(express.urlencoded({ extended: true })); // optional
+
+
+
+
 
 console.log("Using HOST:", process.env.DB_HOST )
 // PostgreSQL connection pool
@@ -178,7 +186,8 @@ app.get('/api/products', async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT id, firebase_id, name, category, price, quantity,
-                    inventory_a, inventory_b, cost_per_unit, image_uri, description, sku
+                    inventory_a, inventory_b, cost_per_unit, image_uri, description, sku,
+                    is_perishable, shelf_life_days, expiration_date, created_at, updated_at
              FROM products
              WHERE is_active = true
              ORDER BY name`
@@ -189,6 +198,7 @@ app.get('/api/products', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 // Get products by category
 app.get('/api/products/category/:category', async (req, res) => {
@@ -230,24 +240,32 @@ app.get('/api/products/:firebaseId', async (req, res) => {
 });
 
 // Create new product
+
 app.post('/api/products', async (req, res) => {
-    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, sku } = req.body;
+    const { firebase_id, name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, sku, is_perishable, shelf_life_days, expiration_date } = req.body;
 
     try {
+        console.log('📦 POST /api/products received:', { firebase_id, name, is_perishable, shelf_life_days });
+
         // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
         const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
         const finalQuantity = isRecipeBased ? 0 : quantity;
         const finalInventoryA = isRecipeBased ? 0 : inventory_a;
         const finalInventoryB = isRecipeBased ? 0 : inventory_b;
 
+console.log("🔥 RAW BODY:", req.body);
+console.log("🔥 firebase_id:", req.body.firebase_id);
+
         const result = await pool.query(
-            `INSERT INTO products (name, category, price, quantity, inventory_a, inventory_b,
-                                  cost_per_unit, image_uri, description, sku, is_active)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+            `INSERT INTO products (firebase_id, name, category, price, quantity, inventory_a, inventory_b,
+                                  cost_per_unit, image_uri, description, sku, is_perishable, shelf_life_days,
+                                  expiration_date, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true)
              RETURNING *`,
-            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, sku]
+            [firebase_id, name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, sku, is_perishable || false, shelf_life_days || 0, expiration_date || null]
         );
 
+        console.log('✅ Product created with ID:', result.rows[0].firebase_id);
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('Error creating product:', error);
@@ -255,12 +273,15 @@ app.post('/api/products', async (req, res) => {
     }
 });
 
+
 // Update product
 app.put('/api/products/:firebaseId', async (req, res) => {
     const { firebaseId } = req.params;
-    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description } = req.body;
+    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, is_perishable, shelf_life_days, expiration_date } = req.body;
 
     try {
+        console.log('🔄 PUT /api/products/:firebaseId received:', { firebaseId, name, is_perishable, shelf_life_days });
+
         // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
         const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
         const isIngredient = category === 'Ingredients';
@@ -295,18 +316,21 @@ app.put('/api/products/:firebaseId', async (req, res) => {
             `UPDATE products
              SET name = $1, category = $2, price = $3, quantity = $4,
                  inventory_a = $5, inventory_b = $6, cost_per_unit = $7,
-                 image_uri = $8, description = $9, updated_at = CURRENT_TIMESTAMP
-             WHERE firebase_id = $10
+                 image_uri = $8, description = $9, is_perishable = $10,
+                 shelf_life_days = $11, expiration_date = $12, updated_at = CURRENT_TIMESTAMP
+             WHERE firebase_id = $13
              RETURNING *`,
-            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, firebaseId]
+            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, is_perishable || false, shelf_life_days || 0, expiration_date || null, firebaseId]
         );
 
+        console.log('✅ Product updated with ID:', firebaseId);
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 // Delete product (soft delete)
 app.delete('/api/products/:firebaseId', async (req, res) => {
@@ -326,6 +350,7 @@ app.delete('/api/products/:firebaseId', async (req, res) => {
 });
 
 // Transfer inventory A → B
+
 app.post('/api/products/transfer', async (req, res) => {
     const { firebaseId, quantity } = req.body;
 
@@ -377,30 +402,50 @@ app.post('/api/products/transfer', async (req, res) => {
 // SALES - WITH INGREDIENT-BASED DEDUCTION
 // ============================================================================
 
-// Get all sales (limited to last month for performance)
+// Get all sales (with optional date range filtering)
 app.get('/api/sales', async (req, res) => {
     try {
-        // Calculate date from 1 month ago
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const { date_from, date_to, limit = 10000 } = req.query;
+
+        let whereClause = '';
+        const params = [];
+
+        // If date_from is provided, add it to where clause
+        if (date_from) {
+            whereClause = `WHERE s.order_date >= $1`;
+            params.push(date_from);
+            
+            // If date_to is also provided
+            if (date_to) {
+                whereClause += ` AND s.order_date <= $2`;
+                params.push(date_to);
+            }
+        }
+
+        // Add limit parameter at the end
+        const limitParam = params.length + 1;
+        params.push(limit);
 
         const result = await pool.query(
             `SELECT s.*, p.name as product_name
              FROM sales s
              LEFT JOIN products p ON s.product_firebase_id = p.id
-             WHERE s.order_date >= $1
+             ${whereClause}
              ORDER BY s.order_date DESC
-             LIMIT 1000`,
-            [oneMonthAgo]
+             LIMIT $${limitParam}`,
+            params
         );
+
         res.json({
             success: true,
             data: result.rows,
             meta: {
-                from_date: oneMonthAgo.toISOString(),
-                record_count: result.rows.length
+                record_count: result.rows.length,
+                date_filter: date_from ? `From ${date_from}` : 'None (All data)',
+                limit_applied: limit
             }
         });
+
     } catch (error) {
         console.error('Error fetching sales:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -669,7 +714,7 @@ app.post('/api/recipes', async (req, res) => {
 
 
 // ============================================================================
-// UPDATE RECIPE - COMPLETE CORRECTED VERSION
+// UPDATE RECIPE
 // ============================================================================
 app.put('/api/recipes/:recipeId', async (req, res) => {
     const { recipeId } = req.params;
@@ -679,42 +724,54 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get the numeric recipe ID first
-        const recipe = await pool.query(
-            'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
+        console.log(`[UPDATE] Looking for recipe: ${recipeId}`);
+
+        // Get recipe - Cast both sides to text
+        const recipe = await client.query(
+            'SELECT * FROM recipes WHERE id::text = $1::text OR firebase_id::text = $1::text',
             [recipeId]
         );
-
-        if (recipeResult.rows.length === 0) {
+        
+        if (recipe.rows.length === 0) {
             throw new Error('Recipe not found');
         }
-
-        const numericRecipeId = recipeResult.rows[0].id;
-
+        
+        const numericRecipeId = recipe.rows[0].id;
+        console.log(`[UPDATE] Found recipe with id: ${numericRecipeId}, firebase_id: ${recipe.rows[0].firebase_id}`);
+        
         // Update recipe
-        await client.query(
+        const updateResult = await client.query(
             `UPDATE recipes
-             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1),
+             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id::text = $1::text LIMIT 1),
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE firebase_id = $3`,
-            [productFirebaseId, productName, recipeId]
+             WHERE id = $3`,
+            [productFirebaseId, productName, numericRecipeId]
+        );
+        
+        console.log(`[UPDATE] Rows updated: ${updateResult.rowCount}`);
+        
+        if (updateResult.rowCount === 0) {
+            console.log(`[UPDATE] WARNING: No rows were updated! WHERE id = ${numericRecipeId} didn't match anything`);
+            throw new Error(`Failed to update recipe - no matching rows found for id: ${numericRecipeId}`);
+        }
+        
+        // DELETE OLD INGREDIENTS
+        await client.query(
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id::text = $1::text',
+            [recipe.rows[0].firebase_id]
         );
 
-        // Delete old ingredients
-        await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
-            [numericRecipeId]
-        );
+        console.log(`[UPDATE] Deleted old ingredients for recipe_firebase_id: ${recipe.rows[0].firebase_id}`);
 
         // Insert new ingredients
         for (const ingredient of ingredients) {
             await client.query(
-                `INSERT INTO recipe_ingredients (recipe_id, ingredient_firebase_id, 
+                `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id, 
                                                  ingredient_name, quantity_needed, unit)
-                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
+                 VALUES ($1, (SELECT id FROM products WHERE firebase_id::text = $2::text LIMIT 1), $3, $4, $5)`,
                 [
-                    numericRecipeId,
+                    recipe.rows[0].firebase_id,
                     ingredient.ingredientFirebaseId,
                     ingredient.ingredientName,
                     ingredient.quantityNeeded,
@@ -723,8 +780,11 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
             );
         }
 
+        console.log(`[UPDATE] Inserted ${ingredients.length} new ingredients`);
+
         await client.query('COMMIT');
-        res.json({ success: true, message: `Recipe for ${productName} updated successfully `});
+        console.log(`[UPDATE] Transaction committed successfully`);
+        res.json({ success: true, message: `Recipe for ${productName} updated successfully` });
 
     } catch (error) {
         await client.query('ROLLBACK');
@@ -735,8 +795,14 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     }
 });
 
+
+
+
 // ============================================================================
 // DELETE RECIPE - COMPLETE CORRECTED VERSION
+// ============================================================================
+// ============================================================================
+// DELETE RECIPE
 // ============================================================================
 app.delete('/api/recipes/:recipeId', async (req, res) => {
     const { recipeId } = req.params;
@@ -745,33 +811,33 @@ app.delete('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get recipe info
-        const recipe = await pool.query(
-        'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
-        [recipeId]
+        // Get recipe info - FIX: Cast columns to text
+        const recipe = await client.query(
+            'SELECT * FROM recipes WHERE id::text = $1 OR firebase_id::text = $1',
+            [recipeId]
         );
-
-        if (recipeResult.rows.length === 0) {
+        
+        if (recipe.rows.length === 0) {
             throw new Error('Recipe not found');
         }
-
-        const numericRecipeId = recipeResult.rows[0].id;
-        const productName = recipeResult.rows[0].product_name;
-
+        
+        const numericRecipeId = recipe.rows[0].id;
+        const productName = recipe.rows[0].product_name;
+        
         // Delete ingredients first
         await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
+            [recipe.rows[0].firebase_id]
+        );
+        
+        // Delete recipe
+        await client.query(
+            'DELETE FROM recipes WHERE id = $1',
             [numericRecipeId]
         );
 
-        // Delete recipe
-        await client.query(
-            'DELETE FROM recipes WHERE firebase_id = $1',
-            [recipeId]
-        );
-
         await client.query('COMMIT');
-        res.json({ success: true, message: `Recipe for ${productName} deleted successfully `});
+        res.json({ success: true, message: `Recipe for ${productName} deleted successfully` });
 
     } catch (error) {
         await client.query('ROLLBACK');
