@@ -1,17 +1,25 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+/* 🔥 GLOBAL MIDDLEWARE — MUST BE HERE */
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json()); // ✅ THIS FIXES req.body
+app.use(express.urlencoded({ extended: true })); // optional
+
+
+
+
 
 console.log("Using HOST:", process.env.DB_HOST )
 // PostgreSQL connection pool
@@ -232,6 +240,7 @@ app.get('/api/products/:firebaseId', async (req, res) => {
 });
 
 // Create new product
+
 app.post('/api/products', async (req, res) => {
     const { firebase_id, name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, sku, is_perishable, shelf_life_days, expiration_date } = req.body;
 
@@ -243,6 +252,9 @@ app.post('/api/products', async (req, res) => {
         const finalQuantity = isRecipeBased ? 0 : quantity;
         const finalInventoryA = isRecipeBased ? 0 : inventory_a;
         const finalInventoryB = isRecipeBased ? 0 : inventory_b;
+
+console.log("🔥 RAW BODY:", req.body);
+console.log("🔥 firebase_id:", req.body.firebase_id);
 
         const result = await pool.query(
             `INSERT INTO products (firebase_id, name, category, price, quantity, inventory_a, inventory_b,
@@ -338,6 +350,7 @@ app.delete('/api/products/:firebaseId', async (req, res) => {
 });
 
 // Transfer inventory A → B
+
 app.post('/api/products/transfer', async (req, res) => {
     const { firebaseId, quantity } = req.body;
 

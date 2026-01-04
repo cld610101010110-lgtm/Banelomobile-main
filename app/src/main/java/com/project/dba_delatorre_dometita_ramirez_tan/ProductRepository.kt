@@ -108,6 +108,10 @@ class ProductRepository(
                         }
                     }
                 }
+                if (product.firebaseId.isBlank()) {
+                    Log.e(tag, "❌ firebaseId is EMPTY — aborting insert")
+                    return@withContext
+                }
 
                 // Step 2: Create request
                 val request = ProductRequest(
