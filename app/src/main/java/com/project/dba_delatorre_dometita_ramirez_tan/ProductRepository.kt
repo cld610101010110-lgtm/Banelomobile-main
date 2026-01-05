@@ -586,6 +586,125 @@ class ProductRepository(
         }
     }
 
+    // ============ AUTOMATIC EXPIRATION PROCESSING ============
+
+    suspend fun processExpiredProducts(wasteRepository: WasteLogRepository) {
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d(tag, "🔍 Finding expired products in Inventory B...")
+
+                val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+                Log.d(tag, "📅 Today's date: $today")
+
+                // Get all products that are currently in Inventory B with expiration date <= today
+                val allProducts = daoProducts.getAllProducts()
+                val expiredProducts = allProducts.filter { product ->
+                    product.transferredToB &&
+                    !product.expirationDate.isNullOrEmpty() &&
+                    product.inventoryB > 0 &&
+                    product.expirationDate <= today
+                }
+
+                Log.d(tag, "📋 Found ${expiredProducts.size} expired product(s) in Inventory B")
+
+                if (expiredProducts.isEmpty()) {
+                    Log.d(tag, "✅ No expired products to process")
+                    return@withContext
+                }
+
+                var processedCount = 0
+                var totalQuantityWasted = 0
+
+                expiredProducts.forEach { product ->
+                    try {
+                        Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                        Log.d(tag, "♻️ Processing expired product: ${product.name}")
+                        Log.d(tag, "   Firebase ID: ${product.firebaseId}")
+                        Log.d(tag, "   Expiration Date: ${product.expirationDate}")
+                        Log.d(tag, "   Inventory B: ${product.inventoryB}")
+
+                        val wastedQuantity = product.inventoryB
+
+                        // 1. Create waste log entry
+                        val currentDateTime = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                        val wasteLog = Entity_WasteLog(
+                            id = "",
+                            productFirebaseId = product.firebaseId,
+                            productName = product.name,
+                            category = product.category,
+                            quantity = wastedQuantity,
+                            reason = "Expired (Expiration Date: ${product.expirationDate})",
+                            wasteDate = currentDateTime,
+                            recordedBy = "System-AutoExpiration",
+                            isSynced = false
+                        )
+
+                        Log.d(tag, "📝 Recording waste log...")
+                        wasteRepository.insertWasteLog(wasteLog)
+
+                        // 2. Update product: Set inventoryB to 0, reset transferredToB and expirationDate
+                        val updatedProduct = product.copy(
+                            inventoryB = 0,
+                            transferredToB = false,
+                            expirationDate = null,
+                            quantity = product.inventoryA // Total quantity is now only Inventory A
+                        )
+                        daoProducts.updateProduct(updatedProduct)
+
+                        // 3. Update API with new inventory
+                        val request = ProductRequest(
+                            firebase_id = product.firebaseId,
+                            name = updatedProduct.name,
+                            category = updatedProduct.category,
+                            price = updatedProduct.price,
+                            quantity = updatedProduct.quantity,
+                            inventory_a = updatedProduct.inventoryA,
+                            inventory_b = 0, // Now empty
+                            cost_per_unit = updatedProduct.costPerUnit,
+                            image_uri = updatedProduct.image_uri ?: "",
+                            is_perishable = updatedProduct.isPerishable,
+                            shelf_life_days = updatedProduct.shelfLifeDays,
+                            expiration_date = null, // Cleared
+                            transferred_to_b = false
+                        )
+
+                        Log.d(tag, "📤 Syncing to API...")
+                        val apiResult = BaneloApiService.safeCall {
+                            BaneloApiService.api.updateProduct(product.firebaseId, request)
+                        }
+
+                        if (apiResult.isSuccess) {
+                            Log.d(tag, "✅ Product updated: ${product.name}")
+                            Log.d(tag, "   Deducted: $wastedQuantity units")
+                            Log.d(tag, "   Reason: Expired on ${product.expirationDate}")
+                            Log.d(tag, "   Waste logged & synced to API")
+                            processedCount++
+                            totalQuantityWasted += wastedQuantity
+                        } else {
+                            Log.w(tag, "⚠️ API sync failed: ${apiResult.exceptionOrNull()?.message}")
+                            Log.w(tag, "⚠️ Local changes saved, API sync failed")
+                        }
+
+                    } catch (e: Exception) {
+                        Log.e(tag, "❌ Error processing expired product: ${e.message}", e)
+                    }
+                }
+
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(tag, "✅ Expiration processing complete!")
+                Log.d(tag, "📊 Summary:")
+                Log.d(tag, "   Products processed: $processedCount")
+                Log.d(tag, "   Total quantity wasted: $totalQuantityWasted units")
+                Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            } catch (e: Exception) {
+                Log.e(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.e(tag, "❌ Error in processExpiredProducts: ${e.message}", e)
+                Log.e(tag, "━━━━━━━━━━━━━━━━━━━━━━━━")
+            }
+        }
+    }
+
     // ============ HELPER: Convert API response to Entity ============
 
     private fun convertToEntity(response: ProductResponse): Entity_Products {

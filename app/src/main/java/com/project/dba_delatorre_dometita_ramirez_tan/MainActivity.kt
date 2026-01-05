@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.work.*
 import com.jakewharton.threetenabp.AndroidThreeTen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,10 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
         AuditHelper.initialize(this)
         android.util.Log.d("MainActivity", "✅ AuditHelper initialized")
         android.util.Log.d("MainActivity", "✅ Coil ImageLoader will be initialized")
+
+        // 🆕 Schedule automatic expiration check worker for daily 6 AM
+        scheduleExpirationCheckWorker()
+
         enableEdgeToEdge()
         val db = Database_Users.getDatabase(applicationContext)
         val userdao = db.dao_users()
@@ -251,5 +256,58 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
             .also {
                 android.util.Log.d("MainActivity", "✅ Coil ImageLoader configured with network support")
             }
+    }
+
+    // 🆕 Schedule automatic expiration check worker
+    private fun scheduleExpirationCheckWorker() {
+        try {
+            android.util.Log.d("MainActivity", "🔄 Scheduling ExpirationCheckWorker...")
+
+            // Create a periodic work request that runs daily at 6 AM
+            val expirationCheckWork = PeriodicWorkRequestBuilder<ExpirationCheckWorker>(
+                1,  // repeat interval
+                java.util.concurrent.TimeUnit.DAYS
+            )
+                .setInitialDelay(calculateInitialDelay(), java.util.concurrent.TimeUnit.MINUTES)
+                .addTag("expiration_check")
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    PeriodicWorkRequest.MIN_BACKOFF_MILLIS,
+                    java.util.concurrent.TimeUnit.MILLISECONDS
+                )
+                .build()
+
+            // Enqueue the work (KEEP replaces any existing work with same tag)
+            WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                "expiration_check_daily",
+                ExistingPeriodicWorkPolicy.KEEP,
+                expirationCheckWork
+            )
+
+            android.util.Log.d("MainActivity", "✅ ExpirationCheckWorker scheduled for daily 6 AM")
+
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ Failed to schedule ExpirationCheckWorker: ${e.message}", e)
+        }
+    }
+
+    // Calculate minutes until 6 AM for initial delay
+    private fun calculateInitialDelay(): Long {
+        val calendar = java.util.Calendar.getInstance()
+        val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+        val currentMinute = calendar.get(java.util.Calendar.MINUTE)
+
+        val targetHour = 6 // 6 AM
+
+        val delayMinutes = if (currentHour < targetHour) {
+            // If before 6 AM, wait until 6 AM today
+            (targetHour - currentHour) * 60 - currentMinute
+        } else {
+            // If after 6 AM, wait until 6 AM tomorrow
+            ((24 - currentHour) + targetHour) * 60 - currentMinute
+        }
+
+        android.util.Log.d("MainActivity", "⏰ ExpirationCheckWorker initial delay: $delayMinutes minutes")
+        return delayMinutes.toLong()
     }
 }
