@@ -206,7 +206,7 @@ fun OrderProcessScreen(
     }
 
     ModalNavigationDrawer(drawerState = drawerState, drawerContent = {
-        SidebarDrawer(navController)
+        SidebarDrawer(navController, drawerState)
     }) {
         Scaffold(
             topBar = {

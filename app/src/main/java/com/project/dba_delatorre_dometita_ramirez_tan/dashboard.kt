@@ -408,7 +408,7 @@ fun SidebarDrawer(navController: NavController, drawerState: DrawerState) {
         if (RoleManager.getCurrentUserRole().equals("Manager", ignoreCase = true)) {
             ExpandableDrawerMenuItem(
                 title = "Reports",
-                icon = Icons.Default.BarChart,
+                icon = Icons.Default.Assessment,
                 isExpanded = expandedReports,
                 onExpandClick = { expandedReports = !expandedReports },
                 subItems = listOf(

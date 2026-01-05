@@ -128,7 +128,7 @@ fun InventoryListScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        drawerContent = {SidebarDrawer(navController)}
+        drawerContent = {SidebarDrawer(navController, drawerState)}
     ) {
         Scaffold(
             floatingActionButton = {
