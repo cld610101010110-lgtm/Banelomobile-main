@@ -32,7 +32,7 @@ class ExpirationCheckWorker(
             val database = Database_Products.getDatabase(applicationContext)
             val productRepository = ProductRepository(
                 database.dao_products(),
-                database.daoSalesReport()
+                database.dao_salesReport()
             )
             val wasteRepository = WasteLogRepository(database.daoWasteLog())
 

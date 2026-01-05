@@ -277,10 +277,10 @@ console.log("🔥 firebase_id:", req.body.firebase_id);
 // Update product
 app.put('/api/products/:firebaseId', async (req, res) => {
     const { firebaseId } = req.params;
-    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, is_perishable, shelf_life_days, expiration_date } = req.body;
+    const { name, category, price, quantity, inventory_a, inventory_b, cost_per_unit, image_uri, description, is_perishable, shelf_life_days, expiration_date, transferred_to_b } = req.body;
 
     try {
-        console.log('🔄 PUT /api/products/:firebaseId received:', { firebaseId, name, is_perishable, shelf_life_days });
+        console.log('🔄 PUT /api/products/:firebaseId received:', { firebaseId, name, is_perishable, shelf_life_days, transferred_to_b, expiration_date });
 
         // ✅ FIX: Beverages and Pastries are recipe-based, they should NEVER have stock
         const isRecipeBased = ['Beverages', 'Pastries'].includes(category);
@@ -317,19 +317,23 @@ app.put('/api/products/:firebaseId', async (req, res) => {
              SET name = $1, category = $2, price = $3, quantity = $4,
                  inventory_a = $5, inventory_b = $6, cost_per_unit = $7,
                  image_uri = $8, description = $9, is_perishable = $10,
-                 shelf_life_days = $11, expiration_date = $12, updated_at = CURRENT_TIMESTAMP
-             WHERE firebase_id = $13
+                 shelf_life_days = $11, expiration_date = $12, transferred_to_b = $13, updated_at = CURRENT_TIMESTAMP
+             WHERE firebase_id = $14
              RETURNING *`,
-            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, is_perishable || false, shelf_life_days || 0, expiration_date || null, firebaseId]
+            [name, category, price, finalQuantity, finalInventoryA, finalInventoryB, cost_per_unit, image_uri, description, is_perishable || false, shelf_life_days || 0, expiration_date || null, transferred_to_b || false, firebaseId]
         );
 
         console.log('✅ Product updated with ID:', firebaseId);
+        console.log('   transferred_to_b:', transferred_to_b);
+        console.log('   expiration_date:', expiration_date);
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+
 
 
 // Delete product (soft delete)
