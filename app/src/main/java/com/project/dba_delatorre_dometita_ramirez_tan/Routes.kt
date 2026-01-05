@@ -11,6 +11,7 @@ sealed class Routes(val routes: String) {
     object R_InventoryTransfer: Routes( "InventoryTransferScreen")
     object R_WasteMarking: Routes( "WasteMarkingScreen")
     object R_IngredientCostView: Routes( "IngredientCostViewScreen")
-
+    object R_SalesReport: Routes( "SalesReportScreen")
+    object R_WasteReport: Routes( "WasteReportScreen")
 
 }

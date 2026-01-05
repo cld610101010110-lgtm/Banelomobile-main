@@ -176,6 +176,42 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
                     }
                 }
 
+                composable(Routes.R_SalesReport.routes) {
+                    if (RoleManager.canAccessRoute(Routes.R_SalesReport.routes)) {
+                        SalesReportScreen(
+                            navController = navController,
+                            viewModel = salesReportViewModel
+                        )
+                    } else {
+                        LaunchedEffect(Unit) {
+                            navController.navigate(RoleManager.getDefaultRoute()) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Access Denied - Redirecting...", color = Color.Red)
+                        }
+                    }
+                }
+
+                composable(Routes.R_WasteReport.routes) {
+                    if (RoleManager.canAccessRoute(Routes.R_WasteReport.routes)) {
+                        // TODO: Create WasteReportScreen later
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Waste Report Screen - Coming Soon", color = Color.Gray)
+                        }
+                    } else {
+                        LaunchedEffect(Unit) {
+                            navController.navigate(RoleManager.getDefaultRoute()) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Access Denied - Redirecting...", color = Color.Red)
+                        }
+                    }
+                }
+
                 composable(Routes.R_Logo.routes){
                     WelcomeLogo(navController = navController)
                 }
