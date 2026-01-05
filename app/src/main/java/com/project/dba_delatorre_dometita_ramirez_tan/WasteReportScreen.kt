@@ -23,20 +23,6 @@ import kotlinx.coroutines.launch
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
 
-// ============================================================================
-// Colors - Dashboard Theme
-// ============================================================================
-private val LatteCream = Color(0xFFF3E5AB)
-private val LightCoffee = Color(0xFFFAF1E6)
-private val Mocha = Color(0xFF837060)
-private val Cappuccino = Color(0xFFDDBEA9)
-private val CoffeeBrown = Color(0xFF6F4E37)
-private val EspressoDark = Color(0xFF4B3621)
-private val BackgroundCoffee = Color(0xFFFFF8F0)
-private val Latte = Color(0xFFF5E6DA)
-private val WasteRed = Color(0xFFD32F2F)
-private val WarningOrange = Color(0xFFF57C00)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WasteReportScreen(
