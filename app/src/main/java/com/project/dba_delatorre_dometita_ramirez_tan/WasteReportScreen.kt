@@ -324,7 +324,6 @@ fun WasteReportScreen(
     // ============================================================================
     if (showStartDatePicker) {
         SimpleDatePickerDialog(
-            title = "Select Start Date",
             onDateSelected = { selectedDate ->
                 customStartDate = selectedDate
                 showStartDatePicker = false
@@ -336,7 +335,6 @@ fun WasteReportScreen(
 
     if (showEndDatePicker) {
         SimpleDatePickerDialog(
-            title = "Select End Date",
             onDateSelected = { selectedDate ->
                 customEndDate = selectedDate
                 showEndDatePicker = false
