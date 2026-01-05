@@ -196,10 +196,10 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
 
                 composable(Routes.R_WasteReport.routes) {
                     if (RoleManager.canAccessRoute(Routes.R_WasteReport.routes)) {
-                        // TODO: Create WasteReportScreen later
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Waste Report Screen - Coming Soon", color = Color.Gray)
-                        }
+                        WasteReportScreen(
+                            navController = navController,
+                            wasteLogViewModel = wasteLogViewModel
+                        )
                     } else {
                         LaunchedEffect(Unit) {
                             navController.navigate(RoleManager.getDefaultRoute()) {
