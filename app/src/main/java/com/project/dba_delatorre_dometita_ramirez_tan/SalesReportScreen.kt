@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -217,7 +218,7 @@ fun SalesReportScreen(
                                 // Total Revenue Card
                                 SummarySalesCard(
                                     title = "Total Revenue",
-                                    value = "₱${String.format("%.2f", viewModel.totalRevenue)}",
+                                    value = "₱${String.format(Locale.US, "%.2f", viewModel.totalRevenue)}",
                                     subtitle = "$selectedPeriod Sales",
                                     modifier = Modifier.weight(1f),
                                     backgroundColor = Cappuccino
@@ -318,7 +319,6 @@ fun SalesReportScreen(
     // ============================================================================
     if (showStartDatePicker) {
         SimpleDatePickerDialog(
-            title = "Select Start Date",
             onDateSelected = { selectedDate ->
                 customStartDate = selectedDate
                 showStartDatePicker = false
@@ -330,7 +330,6 @@ fun SalesReportScreen(
 
     if (showEndDatePicker) {
         SimpleDatePickerDialog(
-            title = "Select End Date",
             onDateSelected = { selectedDate ->
                 customEndDate = selectedDate
                 showEndDatePicker = false
@@ -441,7 +440,7 @@ fun TopProductItem(
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                text = "₱${String.format("%.2f", revenue)}",
+                text = "₱${String.format(Locale.US, "%.2f", revenue)}",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = CoffeeBrown
@@ -484,7 +483,7 @@ fun SalesDetailCard(sale: Entity_SalesReport) {
             }
 
             Text(
-                text = "₱${String.format("%.2f", sale.price * sale.quantity)}",
+                text = "₱${String.format(Locale.US, "%.2f", sale.price * sale.quantity)}",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = CoffeeBrown
@@ -528,7 +527,6 @@ fun SalesDetailCard(sale: Entity_SalesReport) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimpleDatePickerDialog(
-    title: String,
     onDateSelected: (LocalDate) -> Unit,
     onDismiss: () -> Unit,
     initialDate: LocalDate
@@ -545,15 +543,10 @@ fun SimpleDatePickerDialog(
             Button(
                 onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val selectedDate = java.time.Instant.ofEpochMilli(millis)
-                            .atZone(java.time.ZoneId.systemDefault())
+                        val selectedDate = org.threeten.bp.Instant.ofEpochMilli(millis)
+                            .atZone(org.threeten.bp.ZoneId.systemDefault())
                             .toLocalDate()
-                        val threeTenDate = org.threeten.bp.LocalDate.of(
-                            selectedDate.year,
-                            selectedDate.monthValue,
-                            selectedDate.dayOfMonth
-                        )
-                        onDateSelected(threeTenDate)
+                        onDateSelected(selectedDate)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
