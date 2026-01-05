@@ -75,7 +75,7 @@ fun dashboard(navController: NavController, viewModel: SalesReportViewModel) {
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-                SidebarDrawer(navController)
+                SidebarDrawer(navController, drawerState)
             }
         ) {
             Scaffold(
@@ -342,9 +342,10 @@ fun SalesItem(name: String, price: String, color: Color) {
 }
 
 @Composable
-fun SidebarDrawer(navController: NavController) {
+fun SidebarDrawer(navController: NavController, drawerState: DrawerState) {
     val scrollState = rememberScrollState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var expandedReports by remember { mutableStateOf(false) }
 
     // ✅ Get menu items based on user role
     val menuItems = RoleManager.getMenuItemsForRole()
@@ -396,11 +397,27 @@ fun SidebarDrawer(navController: NavController) {
 
         // ✅ Display only authorized menu items
         menuItems.forEach { (title, icon) ->
-            DrawerMenuItem(title, icon, navController) {
+            DrawerMenuItem(title, icon, navController, drawerState) {
                 if (title == "Log Out") {
                     showLogoutDialog = true
                 }
             }
+        }
+
+        // ✅ Reports dropdown menu (Manager only)
+        if (RoleManager.getCurrentUserRole().equals("Manager", ignoreCase = true)) {
+            ExpandableDrawerMenuItem(
+                title = "Reports",
+                icon = Icons.Default.BarChart,
+                isExpanded = expandedReports,
+                onExpandClick = { expandedReports = !expandedReports },
+                subItems = listOf(
+                    "Sales Report" to { navController.navigate(Routes.R_SalesReport.routes) },
+                    "Waste Report" to { navController.navigate(Routes.R_WasteReport.routes) }
+                ),
+                navController = navController,
+                drawerState = drawerState
+            )
         }
 
         if (showLogoutDialog) {
@@ -466,8 +483,10 @@ fun DrawerMenuItem(
     title: String,
     icon: ImageVector,
     navController: NavController,
+    drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed),
     onLogoutClick: () -> Unit = {}
 ) {
+    val scope = rememberCoroutineScope()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val selected = currentRoute?.contains(title.replace(" ", ""), ignoreCase = true) == true
 
@@ -484,9 +503,18 @@ fun DrawerMenuItem(
             .clickable {
                 when (title) {
                     "Log Out" -> onLogoutClick()
-                    "Overview" -> navController.navigate(Routes.R_DashboardScreen.routes)
-                    "Order Process" -> navController.navigate(Routes.OrderProcess.routes)
-                    "Inventory List" -> navController.navigate(Routes.R_InventoryList.routes)
+                    "Overview" -> {
+                        navController.navigate(Routes.R_DashboardScreen.routes)
+                        scope.launch { drawerState.close() }
+                    }
+                    "Order Process" -> {
+                        navController.navigate(Routes.OrderProcess.routes)
+                        scope.launch { drawerState.close() }
+                    }
+                    "Inventory List" -> {
+                        navController.navigate(Routes.R_InventoryList.routes)
+                        scope.launch { drawerState.close() }
+                    }
                 }
             }
             .padding(horizontal = 24.dp, vertical = 16.dp)
@@ -504,5 +532,101 @@ fun DrawerMenuItem(
             color = textColor,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
+    }
+}
+
+// ============================================================================
+// Expandable Drawer Menu Item Component (for Reports with sub-items)
+// ============================================================================
+@Composable
+fun ExpandableDrawerMenuItem(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onExpandClick: () -> Unit,
+    subItems: List<Pair<String, () -> Unit>>,
+    navController: NavController,
+    drawerState: DrawerState
+) {
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Parent menu item
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { onExpandClick() }
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = Color(0xFF4B3832),
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    color = Color(0xFF4B3832),
+                    fontWeight = FontWeight.Normal
+                )
+            }
+
+            // Expand/collapse arrow
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = Color(0xFF4B3832),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        // Sub-items (shown when expanded)
+        if (isExpanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
+            ) {
+                subItems.forEach { (subTitle, onSubItemClick) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 12.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                onSubItemClick()
+                                scope.launch { drawerState.close() }
+                            }
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
+                    ) {
+                        // Dot indicator
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(Color(0xFF4B3832), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = subTitle,
+                            fontSize = 13.sp,
+                            color = Color(0xFF4B3832)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
