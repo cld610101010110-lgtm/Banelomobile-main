@@ -272,7 +272,7 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
                 .addTag("expiration_check")
                 .setBackoffCriteria(
                     BackoffPolicy.EXPONENTIAL,
-                    PeriodicWorkRequest.MIN_BACKOFF_MILLIS,
+                    15000, // 15 seconds minimum backoff (WorkManager default)
                     java.util.concurrent.TimeUnit.MILLISECONDS
                 )
                 .build()
