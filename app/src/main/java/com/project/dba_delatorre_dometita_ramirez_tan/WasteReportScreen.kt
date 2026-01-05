@@ -106,7 +106,7 @@ fun WasteReportScreen(
                             ) {
                                 val periods = listOf("Today", "Week", "Month", "All")
                                 periods.forEach { period ->
-                                    FilterButton(
+                                    ReportFilterButton(
                                         label = period,
                                         isSelected = selectedPeriod == period,
                                         onClick = {
@@ -154,7 +154,7 @@ fun WasteReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = DateRange,
+                                            imageVector = Icons.Default.DateRange,
                                             contentDescription = "Pick start date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
@@ -178,7 +178,7 @@ fun WasteReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = DateRange,
+                                            imageVector = Icons.Default.DateRange,
                                             contentDescription = "Pick end date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
@@ -531,30 +531,4 @@ fun WasteDetailCard(wasteLog: Entity_WasteLog) {
     }
 }
 
-// ============================================================================
-// Filter Button Component (reused from SalesReportScreen)
-// ============================================================================
-@Composable
-fun FilterButton(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(8.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) CoffeeBrown else LightCoffee,
-            contentColor = if (isSelected) Color.White else EspressoDark
-        )
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
+

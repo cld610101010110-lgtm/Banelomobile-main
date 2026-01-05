@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -102,7 +103,7 @@ fun SalesReportScreen(
                             ) {
                                 val periods = listOf("Today", "Week", "Month", "All")
                                 periods.forEach { period ->
-                                    FilterButton(
+                                    ReportFilterButton(
                                         label = period,
                                         isSelected = selectedPeriod == period,
                                         onClick = {
@@ -150,7 +151,7 @@ fun SalesReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            imageVector = Icons.Default.DateRange,
                                             contentDescription = "Pick start date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
@@ -174,7 +175,7 @@ fun SalesReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            imageVector = Icons.Default.DateRange,
                                             contentDescription = "Pick end date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
@@ -348,34 +349,6 @@ fun SalesReportScreen(
             },
             onDismiss = { showEndDatePicker = false },
             initialDate = customEndDate
-        )
-    }
-}
-
-// ============================================================================
-// Filter Button Component
-// ============================================================================
-@Composable
-fun FilterButton(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(8.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) CoffeeBrown else LightCoffee,
-            contentColor = if (isSelected) Color.White else EspressoDark
-        )
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
 }
