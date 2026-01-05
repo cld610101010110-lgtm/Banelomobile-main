@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import org.threeten.bp.LocalDate
+import org.threeten.bp.format.DateTimeFormatter
 
 // ============================================================================
 // Colors - Dashboard Theme
@@ -42,6 +44,12 @@ fun SalesReportScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedPeriod by remember { mutableStateOf("Today") }
+
+    // Date range state for "All" filter
+    var customStartDate by remember { mutableStateOf(LocalDate.now().minusMonths(1)) }
+    var customEndDate by remember { mutableStateOf(LocalDate.now()) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
     // Load data on screen entry
     LaunchedEffect(Unit) {
@@ -79,25 +87,121 @@ fun SalesReportScreen(
                 ) {
                     // ============= PERIOD FILTER BUTTONS =============
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(LightCoffee),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            val periods = listOf("Today", "Week", "Month")
-                            periods.forEach { period ->
-                                FilterButton(
-                                    label = period,
-                                    isSelected = selectedPeriod == period,
-                                    onClick = {
-                                        selectedPeriod = period
-                                        viewModel.filterByPeriod(period)
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
+                            // First row: Today, Week, Month, All
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(LightCoffee),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val periods = listOf("Today", "Week", "Month", "All")
+                                periods.forEach { period ->
+                                    FilterButton(
+                                        label = period,
+                                        isSelected = selectedPeriod == period,
+                                        onClick = {
+                                            selectedPeriod = period
+                                            if (period != "All") {
+                                                viewModel.filterByPeriod(period)
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+
+                            // Date range pickers - shown when "All" is selected
+                            if (selectedPeriod == "All") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Cappuccino)
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = "Select Date Range",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = EspressoDark
+                                    )
+
+                                    // Start Date Picker
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White)
+                                            .clickable { showStartDatePicker = true }
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "From: ${customStartDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                                            fontSize = 12.sp,
+                                            color = EspressoDark
+                                        )
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            contentDescription = "Pick start date",
+                                            tint = CoffeeBrown,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    // End Date Picker
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White)
+                                            .clickable { showEndDatePicker = true }
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "To: ${customEndDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                                            fontSize = 12.sp,
+                                            color = EspressoDark
+                                        )
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            contentDescription = "Pick end date",
+                                            tint = CoffeeBrown,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    // Apply button
+                                    Button(
+                                        onClick = {
+                                            val startStr = customStartDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                                            val endStr = customEndDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                                            viewModel.filterSalesByRange(startStr, endStr)
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(36.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "Apply Filter",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -219,6 +323,33 @@ fun SalesReportScreen(
             }
         }
     )
+
+    // ============================================================================
+    // Date Picker Dialogs
+    // ============================================================================
+    if (showStartDatePicker) {
+        SimpleDatePickerDialog(
+            title = "Select Start Date",
+            onDateSelected = { selectedDate ->
+                customStartDate = selectedDate
+                showStartDatePicker = false
+            },
+            onDismiss = { showStartDatePicker = false },
+            initialDate = customStartDate
+        )
+    }
+
+    if (showEndDatePicker) {
+        SimpleDatePickerDialog(
+            title = "Select End Date",
+            onDateSelected = { selectedDate ->
+                customEndDate = selectedDate
+                showEndDatePicker = false
+            },
+            onDismiss = { showEndDatePicker = false },
+            initialDate = customEndDate
+        )
+    }
 }
 
 // ============================================================================
@@ -427,5 +558,57 @@ fun SalesDetailCard(sale: Entity_SalesReport) {
                 color = Mocha
             )
         }
+    }
+}
+
+// ============================================================================
+// Simple Date Picker Dialog Component
+// ============================================================================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SimpleDatePickerDialog(
+    title: String,
+    onDateSelected: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+    initialDate: LocalDate
+) {
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = initialDate.atStartOfDay().toInstant(
+            org.threeten.bp.ZoneOffset.UTC
+        ).toEpochMilli()
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val selectedDate = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                        val threeTenDate = org.threeten.bp.LocalDate.of(
+                            selectedDate.year,
+                            selectedDate.monthValue,
+                            selectedDate.dayOfMonth
+                        )
+                        onDateSelected(threeTenDate)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
+            ) {
+                Text("OK", color = Color.White)
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+            ) {
+                Text("Cancel", color = Color.White)
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }
