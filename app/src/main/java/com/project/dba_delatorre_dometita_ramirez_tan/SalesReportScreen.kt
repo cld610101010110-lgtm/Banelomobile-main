@@ -103,7 +103,7 @@ fun SalesReportScreen(
                             ) {
                                 val periods = listOf("Today", "Week", "Month", "All")
                                 periods.forEach { period ->
-                                    FilterButton(
+                                    ReportFilterButton(
                                         label = period,
                                         isSelected = selectedPeriod == period,
                                         onClick = {
@@ -349,34 +349,6 @@ fun SalesReportScreen(
             },
             onDismiss = { showEndDatePicker = false },
             initialDate = customEndDate
-        )
-    }
-}
-
-// ============================================================================
-// Filter Button Component
-// ============================================================================
-@Composable
-fun FilterButton(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(8.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) CoffeeBrown else LightCoffee,
-            contentColor = if (isSelected) Color.White else EspressoDark
-        )
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
 }

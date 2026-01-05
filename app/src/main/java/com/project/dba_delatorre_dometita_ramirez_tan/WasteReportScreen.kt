@@ -106,7 +106,7 @@ fun WasteReportScreen(
                             ) {
                                 val periods = listOf("Today", "Week", "Month", "All")
                                 periods.forEach { period ->
-                                    FilterButton(
+                                    ReportFilterButton(
                                         label = period,
                                         isSelected = selectedPeriod == period,
                                         onClick = {
