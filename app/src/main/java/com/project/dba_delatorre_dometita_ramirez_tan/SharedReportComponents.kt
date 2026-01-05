@@ -23,6 +23,8 @@ val CoffeeBrown = Color(0xFF6F4E37)
 val EspressoDark = Color(0xFF4B3621)
 val BackgroundCoffee = Color(0xFFFFF8F0)
 val Latte = Color(0xFFF5E6DA)
+val WasteRed = Color(0xFFD32F2F)
+val WarningOrange = Color(0xFFF57C00)
 
 // ============================================================================
 // Filter Button Component (shared across report screens)
