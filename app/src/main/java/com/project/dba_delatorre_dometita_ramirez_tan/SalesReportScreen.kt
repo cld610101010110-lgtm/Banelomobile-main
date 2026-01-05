@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 
 // ============================================================================
 // Colors - Dashboard Theme
@@ -31,6 +32,7 @@ private val EspressoDark = Color(0xFF4B3621)
 private val BackgroundCoffee = Color(0xFFFFF8F0)
 private val Latte = Color(0xFFF5E6DA)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SalesReportScreen(
     navController: NavController,
@@ -38,6 +40,7 @@ fun SalesReportScreen(
 ) {
     // UI State
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
     var selectedPeriod by remember { mutableStateOf("Today") }
 
     // Load data on screen entry
@@ -55,7 +58,7 @@ fun SalesReportScreen(
                         title = { Text("Sales Report", color = Color.White, fontWeight = FontWeight.Bold) },
                         navigationIcon = {
                             IconButton(onClick = {
-                                drawerState.open()
+                                scope.launch { drawerState.open() }
                             }) {
                                 Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Color.White)
                             }
