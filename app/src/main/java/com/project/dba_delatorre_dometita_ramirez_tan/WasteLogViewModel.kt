@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import org.threeten.bp.LocalDate
+import org.threeten.bp.format.DateTimeFormatter
 
 class WasteLogViewModel(
     private val repository: WasteLogRepository
@@ -13,10 +15,16 @@ class WasteLogViewModel(
     var wasteLogsList by mutableStateOf<List<Entity_WasteLog>>(emptyList())
         private set
 
+    var wasteLogs by mutableStateOf<List<Entity_WasteLog>>(emptyList())
+        private set
+
     var isLoading by mutableStateOf(false)
         private set
 
     var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    var totalWasteQuantity by mutableStateOf(0)
         private set
 
     init {
@@ -116,6 +124,73 @@ class WasteLogViewModel(
     fun reloadWasteLogs() {
         viewModelScope.launch {
             wasteLogsList = repository.getAllWasteLogs()
+        }
+    }
+
+    // Load all waste logs for waste report screen
+    fun loadAllWasteLogs() {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                repository.syncFromApi()
+                wasteLogsList = repository.getAllWasteLogs()
+                wasteLogs = wasteLogsList
+            } catch (e: Exception) {
+                errorMessage = "Failed to load waste logs: ${e.message}"
+                wasteLogsList = repository.getAllWasteLogs()
+                wasteLogs = wasteLogsList
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    // Filter waste logs by period (Today, Week, Month)
+    fun filterByPeriod(period: String) {
+        val today = LocalDate.now()
+        val startDate: String
+        val endDate: String
+
+        when (period) {
+            "Today" -> {
+                val todayStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                startDate = todayStr
+                endDate = todayStr
+            }
+            "Week" -> {
+                val weekAgo = today.minusDays(6)
+                startDate = weekAgo.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                endDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            }
+            "Month" -> {
+                val firstDayOfMonth = today.withDayOfMonth(1)
+                startDate = firstDayOfMonth.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                endDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            }
+            else -> return
+        }
+
+        viewModelScope.launch {
+            try {
+                val filtered = repository.getWasteLogsByDateRange(startDate, endDate)
+                wasteLogs = filtered
+                totalWasteQuantity = filtered.sumOf { it.quantity }
+            } catch (e: Exception) {
+                errorMessage = "Failed to filter waste logs: ${e.message}"
+            }
+        }
+    }
+
+    // Filter waste logs by custom date range
+    fun filterByDateRange(startDate: String, endDate: String) {
+        viewModelScope.launch {
+            try {
+                val filtered = repository.getWasteLogsByDateRange(startDate, endDate)
+                wasteLogs = filtered
+                totalWasteQuantity = filtered.sumOf { it.quantity }
+            } catch (e: Exception) {
+                errorMessage = "Failed to filter waste logs: ${e.message}"
+            }
         }
     }
 }

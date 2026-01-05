@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,12 +34,14 @@ private val CoffeeBrown = Color(0xFF6F4E37)
 private val EspressoDark = Color(0xFF4B3621)
 private val BackgroundCoffee = Color(0xFFFFF8F0)
 private val Latte = Color(0xFFF5E6DA)
+private val WasteRed = Color(0xFFD32F2F)
+private val WarningOrange = Color(0xFFF57C00)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SalesReportScreen(
+fun WasteReportScreen(
     navController: NavController,
-    viewModel: SalesReportViewModel
+    wasteLogViewModel: WasteLogViewModel
 ) {
     // UI State
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -53,7 +56,8 @@ fun SalesReportScreen(
 
     // Load data on screen entry
     LaunchedEffect(Unit) {
-        viewModel.syncAndLoadSales()
+        wasteLogViewModel.loadAllWasteLogs()
+        wasteLogViewModel.filterByPeriod("Today")
     }
 
     ModalNavigationDrawer(
@@ -63,7 +67,7 @@ fun SalesReportScreen(
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text("Sales Report", color = Color.White, fontWeight = FontWeight.Bold) },
+                        title = { Text("Waste Report", color = Color.White, fontWeight = FontWeight.Bold) },
                         navigationIcon = {
                             IconButton(onClick = {
                                 scope.launch { drawerState.open() }
@@ -108,7 +112,7 @@ fun SalesReportScreen(
                                         onClick = {
                                             selectedPeriod = period
                                             if (period != "All") {
-                                                viewModel.filterByPeriod(period)
+                                                wasteLogViewModel.filterByPeriod(period)
                                             }
                                         },
                                         modifier = Modifier.weight(1f)
@@ -150,7 +154,7 @@ fun SalesReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            imageVector = DateRange,
                                             contentDescription = "Pick start date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
@@ -174,7 +178,7 @@ fun SalesReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            imageVector = DateRange,
                                             contentDescription = "Pick end date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
@@ -186,7 +190,7 @@ fun SalesReportScreen(
                                         onClick = {
                                             val startStr = customStartDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                                             val endStr = customEndDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                                            viewModel.filterSalesByRange(startStr, endStr)
+                                            wasteLogViewModel.filterByDateRange(startStr, endStr)
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -207,7 +211,7 @@ fun SalesReportScreen(
                     }
 
                     // ============= LOADING STATE =============
-                    if (viewModel.isLoading) {
+                    if (wasteLogViewModel.isLoading) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -225,27 +229,27 @@ fun SalesReportScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                // Total Revenue Card
-                                SummarySalesCard(
-                                    title = "Total Revenue",
-                                    value = "₱${String.format("%.2f", viewModel.totalRevenue)}",
-                                    subtitle = "$selectedPeriod Sales",
+                                // Total Waste Quantity Card
+                                SummaryWasteCard(
+                                    title = "Units Wasted",
+                                    value = "${wasteLogViewModel.totalWasteQuantity}",
+                                    subtitle = "$selectedPeriod Waste",
                                     modifier = Modifier.weight(1f),
-                                    backgroundColor = Cappuccino
+                                    backgroundColor = WarningOrange.copy(alpha = 0.3f)
                                 )
 
-                                // Total Sold Card
-                                SummarySalesCard(
-                                    title = "Units Sold",
-                                    value = "${viewModel.totalSold}",
-                                    subtitle = "$selectedPeriod Sales",
+                                // Total Waste Records Card
+                                SummaryWasteCard(
+                                    title = "Waste Records",
+                                    value = "${wasteLogViewModel.wasteLogs.size}",
+                                    subtitle = "$selectedPeriod Count",
                                     modifier = Modifier.weight(1f),
-                                    backgroundColor = LatteCream
+                                    backgroundColor = WasteRed.copy(alpha = 0.2f)
                                 )
                             }
                         }
 
-                        // ============= TOP PRODUCTS SECTION =============
+                        // ============= WASTE REASONS BREAKDOWN =============
                         item {
                             Column(
                                 modifier = Modifier
@@ -256,43 +260,48 @@ fun SalesReportScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    text = "Top Selling Products",
+                                    text = "Waste by Reason",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = EspressoDark
                                 )
 
-                                if (viewModel.topSales.value.isEmpty()) {
+                                val wasteByReason = wasteLogViewModel.wasteLogs
+                                    .groupingBy { it.reason }
+                                    .eachCount()
+                                    .toList()
+                                    .sortedByDescending { it.second }
+
+                                if (wasteByReason.isEmpty()) {
                                     Text(
-                                        text = "No sales data for selected period",
+                                        text = "No waste records for selected period",
                                         fontSize = 14.sp,
                                         color = Mocha,
                                         modifier = Modifier.padding(vertical = 12.dp)
                                     )
                                 } else {
-                                    viewModel.topSales.value.take(5).forEachIndexed { index, item ->
-                                        TopProductItem(
-                                            rank = index + 1,
-                                            productName = item.productName,
-                                            unitsSold = item.totalSold,
-                                            revenue = item.totalRevenue
+                                    wasteByReason.forEach { (reason, count) ->
+                                        WasteReasonItem(
+                                            reason = reason,
+                                            count = count,
+                                            total = wasteLogViewModel.wasteLogs.size
                                         )
                                     }
                                 }
                             }
                         }
 
-                        // ============= SALES DETAILS LIST =============
+                        // ============= WASTE DETAILS LIST =============
                         item {
                             Text(
-                                text = "Sales Details",
+                                text = "Waste Details",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = EspressoDark
                             )
                         }
 
-                        if (viewModel.salesList.isEmpty()) {
+                        if (wasteLogViewModel.wasteLogs.isEmpty()) {
                             item {
                                 Box(
                                     modifier = Modifier
@@ -303,14 +312,14 @@ fun SalesReportScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "No sales found for this period",
+                                        text = "No waste records for this period",
                                         color = EspressoDark
                                     )
                                 }
                             }
                         } else {
-                            items(viewModel.salesList) { sale ->
-                                SalesDetailCard(sale)
+                            items(wasteLogViewModel.wasteLogs) { wasteLog ->
+                                WasteDetailCard(wasteLog)
                             }
                         }
 
@@ -353,38 +362,10 @@ fun SalesReportScreen(
 }
 
 // ============================================================================
-// Filter Button Component
-// ============================================================================
-@Composable
-fun FilterButton(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(8.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) CoffeeBrown else LightCoffee,
-            contentColor = if (isSelected) Color.White else EspressoDark
-        )
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
-
-// ============================================================================
 // Summary Card Component
 // ============================================================================
 @Composable
-fun SummarySalesCard(
+fun SummaryWasteCard(
     title: String,
     value: String,
     subtitle: String,
@@ -421,79 +402,63 @@ fun SummarySalesCard(
 }
 
 // ============================================================================
-// Top Product Item Component
+// Waste Reason Item Component
 // ============================================================================
 @Composable
-fun TopProductItem(
-    rank: Int,
-    productName: String,
-    unitsSold: Int,
-    revenue: Double
+fun WasteReasonItem(
+    reason: String,
+    count: Int,
+    total: Int
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.White)
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Rank badge
-        Surface(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(50)),
-            color = CoffeeBrown
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "#$rank",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
-            }
-        }
+    val percentage = if (total > 0) (count * 100) / total else 0
 
-        // Product details
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = productName,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
+                text = reason,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
                 color = EspressoDark
             )
 
             Text(
-                text = "$unitsSold units sold",
+                text = "$count records ($percentage%)",
                 fontSize = 12.sp,
                 color = Mocha
             )
         }
 
-        // Revenue
-        Column(
-            horizontalAlignment = Alignment.End
+        // Progress bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Color(0xFFE0E0E0))
         ) {
-            Text(
-                text = "₱${String.format("%.2f", revenue)}",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = CoffeeBrown
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction = percentage / 100f)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(WasteRed)
             )
         }
     }
 }
 
 // ============================================================================
-// Sales Detail Card Component
+// Waste Detail Card Component
 // ============================================================================
 @Composable
-fun SalesDetailCard(sale: Entity_SalesReport) {
+fun WasteDetailCard(wasteLog: Entity_WasteLog) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -509,27 +474,42 @@ fun SalesDetailCard(sale: Entity_SalesReport) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = sale.productName,
+                    text = wasteLog.productName,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = EspressoDark
                 )
 
                 Text(
-                    text = sale.category,
+                    text = wasteLog.category,
                     fontSize = 11.sp,
                     color = Mocha
                 )
             }
 
             Text(
-                text = "₱${String.format("%.2f", sale.price * sale.quantity)}",
+                text = "${wasteLog.quantity} units",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = CoffeeBrown
+                color = WasteRed
             )
         }
 
+        // Reason badge
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(WarningOrange.copy(alpha = 0.2f))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = wasteLog.reason,
+                fontSize = 11.sp,
+                color = EspressoDark
+            )
+        }
+
+        // Date and recorded by
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -537,23 +517,13 @@ fun SalesDetailCard(sale: Entity_SalesReport) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Qty: ${sale.quantity}",
+                text = wasteLog.wasteDate.take(10),
                 fontSize = 12.sp,
                 color = Mocha
             )
 
             Text(
-                text = sale.paymentMode,
-                fontSize = 12.sp,
-                color = Mocha,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(LatteCream)
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            )
-
-            Text(
-                text = sale.orderDate.take(10),
+                text = "By: ${wasteLog.recordedBy}",
                 fontSize = 12.sp,
                 color = Mocha
             )
@@ -562,53 +532,29 @@ fun SalesDetailCard(sale: Entity_SalesReport) {
 }
 
 // ============================================================================
-// Simple Date Picker Dialog Component
+// Filter Button Component (reused from SalesReportScreen)
 // ============================================================================
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SimpleDatePickerDialog(
-    title: String,
-    onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit,
-    initialDate: LocalDate
+fun FilterButton(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialDate.atStartOfDay().toInstant(
-            org.threeten.bp.ZoneOffset.UTC
-        ).toEpochMilli()
-    )
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            Button(
-                onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val selectedDate = java.time.Instant.ofEpochMilli(millis)
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toLocalDate()
-                        val threeTenDate = org.threeten.bp.LocalDate.of(
-                            selectedDate.year,
-                            selectedDate.monthValue,
-                            selectedDate.dayOfMonth
-                        )
-                        onDateSelected(threeTenDate)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
-            ) {
-                Text("OK", color = Color.White)
-            }
-        },
-        dismissButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-            ) {
-                Text("Cancel", color = Color.White)
-            }
-        }
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) CoffeeBrown else LightCoffee,
+            contentColor = if (isSelected) Color.White else EspressoDark
+        )
     ) {
-        DatePicker(state = datePickerState)
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }

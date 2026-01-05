@@ -395,8 +395,8 @@ fun SidebarDrawer(navController: NavController, drawerState: DrawerState) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ✅ Display only authorized menu items
-        menuItems.forEach { (title, icon) ->
+        // ✅ Display only authorized menu items (except Log Out)
+        menuItems.filter { it.first != "Log Out" }.forEach { (title, icon) ->
             DrawerMenuItem(title, icon, navController, drawerState) {
                 if (title == "Log Out") {
                     showLogoutDialog = true
@@ -404,7 +404,7 @@ fun SidebarDrawer(navController: NavController, drawerState: DrawerState) {
             }
         }
 
-        // ✅ Reports dropdown menu (Manager only)
+        // ✅ Reports dropdown menu (Manager only) - positioned between Inventory List and Log Out
         if (RoleManager.getCurrentUserRole().equals("Manager", ignoreCase = true)) {
             ExpandableDrawerMenuItem(
                 title = "Reports",
@@ -418,6 +418,13 @@ fun SidebarDrawer(navController: NavController, drawerState: DrawerState) {
                 navController = navController,
                 drawerState = drawerState
             )
+        }
+
+        // ✅ Log Out item - always at the bottom
+        menuItems.find { it.first == "Log Out" }?.let { (title, icon) ->
+            DrawerMenuItem(title, icon, navController, drawerState) {
+                showLogoutDialog = true
+            }
         }
 
         if (showLogoutDialog) {
