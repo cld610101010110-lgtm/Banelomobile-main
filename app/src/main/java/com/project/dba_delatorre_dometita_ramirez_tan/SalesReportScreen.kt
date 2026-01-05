@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -150,7 +151,7 @@ fun SalesReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            imageVector = Icons.Default.DateRange,
                                             contentDescription = "Pick start date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
@@ -174,7 +175,7 @@ fun SalesReportScreen(
                                             color = EspressoDark
                                         )
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.filled.DateRange,
+                                            imageVector = Icons.Default.DateRange,
                                             contentDescription = "Pick end date",
                                             tint = CoffeeBrown,
                                             modifier = Modifier.size(18.dp)
