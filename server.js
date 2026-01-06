@@ -633,7 +633,9 @@ app.get('/api/recipes/product/:firebaseId', async (req, res) => {
     }
 });
 
-// Create recipe with ingredients
+// ============================================================================
+// CREATE RECIPE - COMPLETE CORRECTED VERSION
+// ============================================================================
 app.post('/api/recipes', async (req, res) => {
     const { productFirebaseId, productName, instructions, prep_time_minutes, cook_time_minutes, servings, ingredients } = req.body;
 
@@ -646,14 +648,14 @@ app.post('/api/recipes', async (req, res) => {
         console.log(`📝 [CREATE] Product: ${productName}`);
         console.log(`📝 [CREATE] Ingredients count: ${ingredients?.length || 0}`);
 
-        // Insert recipe - ADD firebase_id column
+        // Insert recipe - include firebase_id
         const recipeResult = await client.query(
             `INSERT INTO recipes (firebase_id, product_firebase_id, product_name, instructions,
                                  prep_time_minutes, cook_time_minutes, servings)
              VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5, $6, $7)
              RETURNING *`,
             [
-                generatedFirebaseId,  // Use generated firebase_id
+                generatedFirebaseId,
                 productFirebaseId, 
                 productName, 
                 instructions, 
@@ -663,26 +665,25 @@ app.post('/api/recipes', async (req, res) => {
             ]
         );
 
-        const recipeId = recipeResult.rows[0].id;
+        // ✅ Use UUID id for ingredients (not firebase_id!)
+        const recipeId = recipeResult.rows[0].id;  // UUID
         const recipeFirebaseId = recipeResult.rows[0].firebase_id;
         
         console.log(`✅ [CREATE] Recipe created:`);
         console.log(`   - UUID id: ${recipeId}`);
         console.log(`   - firebase_id: ${recipeFirebaseId}`);
-        console.log(`   - product_firebase_id: ${recipeResult.rows[0].product_firebase_id}`);
 
-        // Insert ingredients - USE firebase_id for consistency!
+        // ✅ Insert ingredients using UUID id
         for (let i = 0; i < ingredients.length; i++) {
             const ingredient = ingredients[i];
             console.log(`📝 [CREATE] Inserting ingredient ${i + 1}: ${ingredient.ingredientName}`);
             
-            const ingredientResult = await client.query(
+            await client.query(
                 `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id,
                                                 ingredient_name, quantity_needed, unit)
-                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)
-                 RETURNING *`,
+                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
                 [
-                    recipeFirebaseId,  // ✅ USE firebase_id here, not UUID id!
+                    recipeId,  // ✅ Use UUID id here, NOT firebase_id!
                     ingredient.ingredientFirebaseId, 
                     ingredient.ingredientName,
                     ingredient.quantityNeeded, 
@@ -690,7 +691,7 @@ app.post('/api/recipes', async (req, res) => {
                 ]
             );
             
-            console.log(`   ✅ Ingredient saved with recipe_firebase_id: ${ingredientResult.rows[0].recipe_firebase_id}`);
+            console.log(`   ✅ Ingredient saved with recipe_firebase_id: ${recipeId}`);
         }
 
         await client.query('COMMIT');
@@ -705,6 +706,7 @@ app.post('/api/recipes', async (req, res) => {
         client.release();
     }
 });
+
 
 
 
