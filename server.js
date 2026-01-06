@@ -659,18 +659,20 @@ const recipeResult = await client.query(
 );
 ;
 
-        const recipeId = recipeResult.rows[0].id;
+       const recipeId = recipeResult.rows[0].id;
+const recipeFirebaseId = recipeResult.rows[0].firebase_id;  // ✅ Get firebase_id too!
 
-        // Insert ingredients
-        for (const ingredient of ingredients) {
-            await client.query(
-                `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id,
-                                                ingredient_name, quantity_needed, unit)
-                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
-                [recipeId, ingredient.ingredientFirebaseId, ingredient.ingredientName,
-                 ingredient.quantityNeeded, ingredient.unit]
-            );
-        }
+// Insert ingredients - USE firebase_id for linking
+for (const ingredient of ingredients) {
+    await client.query(
+        `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id,
+                                        ingredient_name, quantity_needed, unit)
+         VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
+        [recipeFirebaseId, ingredient.ingredientFirebaseId, ingredient.ingredientName,  // ✅ Use recipeFirebaseId!
+         ingredient.quantityNeeded, ingredient.unit]
+    );
+}
+
 
         await client.query('COMMIT');
         res.json({ success: true, data: recipeResult.rows[0] });
