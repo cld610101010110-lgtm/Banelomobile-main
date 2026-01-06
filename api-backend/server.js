@@ -760,22 +760,22 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
             throw new Error(`Failed to update recipe - no matching rows found for id: ${numericRecipeId}`);
         }
         
-        // DELETE OLD INGREDIENTS
-        await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id::text = $1::text',
-            [recipe.rows[0].firebase_id]
+       // DELETE OLD INGREDIENTS - ✅ Use UUID id
+        const deleteResult = await client.query(
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
+            [numericRecipeId]  // ✅ Use UUID id, not firebase_id!
         );
-
-        console.log(`[UPDATE] Deleted old ingredients for recipe_firebase_id: ${recipe.rows[0].firebase_id}`);
-
-        // Insert new ingredients
+        
+        console.log(`[UPDATE] Deleted ${deleteResult.rowCount} old ingredients for recipe UUID: ${numericRecipeId}`);
+        
+        // Insert new ingredients - ✅ Use UUID id
         for (const ingredient of ingredients) {
             await client.query(
                 `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id, 
                                                  ingredient_name, quantity_needed, unit)
                  VALUES ($1, (SELECT id FROM products WHERE firebase_id::text = $2::text LIMIT 1), $3, $4, $5)`,
                 [
-                    recipe.rows[0].firebase_id,
+                    numericRecipeId,  // ✅ Use UUID id, not firebase_id!
                     ingredient.ingredientFirebaseId,
                     ingredient.ingredientName,
                     ingredient.quantityNeeded,
@@ -783,7 +783,7 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
                 ]
             );
         }
-
+        
         console.log(`[UPDATE] Inserted ${ingredients.length} new ingredients`);
 
         await client.query('COMMIT');
