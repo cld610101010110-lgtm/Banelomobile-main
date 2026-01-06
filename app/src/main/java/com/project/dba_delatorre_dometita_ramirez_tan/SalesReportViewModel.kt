@@ -102,6 +102,16 @@ class SalesReportViewModel(
     fun filterSalesByRange(startDate: String, endDate: String) {
         viewModelScope.launch {
             salesList = repository.getSalesBetweenDates(startDate, endDate)
+            _topSales.value = repository.getTopSalesByDate(startDate, endDate)
+            totalSold = repository.getTotalQuantitySoldBetween(startDate, endDate)
+            totalRevenue = repository.getTotalRevenueBetween(startDate, endDate)
+
+            android.util.Log.d("SalesViewModel", "━━━━━━━━━━━━━━━━━━━━━━━━")
+            android.util.Log.d("SalesViewModel", "🔍 Filtering by date range: $startDate to $endDate")
+            android.util.Log.d("SalesViewModel", "✅ Found ${salesList.size} sales")
+            android.util.Log.d("SalesViewModel", "💰 Total Revenue: ₱$totalRevenue")
+            android.util.Log.d("SalesViewModel", "📦 Total Sold: $totalSold")
+            android.util.Log.d("SalesViewModel", "━━━━━━━━━━━━━━━━━━━━━━━━")
         }
     }
 

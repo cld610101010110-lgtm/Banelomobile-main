@@ -36,7 +36,7 @@ fun SalesReportScreen(
     var selectedPeriod by remember { mutableStateOf("Today") }
 
     // Date range state for "All" filter
-    var customStartDate by remember { mutableStateOf(LocalDate.now().minusMonths(1)) }
+    var customStartDate by remember { mutableStateOf(LocalDate.now().minusYears(1)) }
     var customEndDate by remember { mutableStateOf(LocalDate.now()) }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
