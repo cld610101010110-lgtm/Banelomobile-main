@@ -641,14 +641,23 @@ app.post('/api/recipes', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Insert recipe
-        const recipeResult = await client.query(
-            `INSERT INTO recipes (product_firebase_id, product_name, instructions,
-                                 prep_time_minutes, cook_time_minutes, servings)
-             VALUES ((SELECT id FROM products WHERE firebase_id = $1 LIMIT 1), $2, $3, $4, $5, $6)
-             RETURNING *`,
-            [productFirebaseId, productName, instructions, prep_time_minutes, cook_time_minutes, servings]
-        );
+     // Insert recipe - ADD firebase_id column
+const recipeResult = await client.query(
+    `INSERT INTO recipes (firebase_id, product_firebase_id, product_name, instructions,
+                         prep_time_minutes, cook_time_minutes, servings)
+     VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [
+        `recipe_${productFirebaseId}_${Date.now()}`,  // Generate firebase_id
+        productFirebaseId, 
+        productName, 
+        instructions, 
+        prep_time_minutes, 
+        cook_time_minutes, 
+        servings
+    ]
+);
+;
 
         const recipeId = recipeResult.rows[0].id;
 
