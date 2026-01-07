@@ -123,6 +123,9 @@ class WasteLogRepository(private val dao: Dao_WasteLog) {
     // ============ HELPER: Convert API response to Entity ============
 
     private fun convertToEntity(response: WasteLogResponse): Entity_WasteLog {
+        // Convert ISO 8601 timestamp to "yyyy-MM-dd HH:mm:ss" format
+        val formattedWasteDate = convertIso8601ToLocalFormat(response.wasteDate ?: "")
+
         return Entity_WasteLog(
             id = 0, // Room will auto-generate
             firebaseId = response.firebaseId ?: "",
@@ -131,10 +134,36 @@ class WasteLogRepository(private val dao: Dao_WasteLog) {
             category = response.category ?: "",
             quantity = response.quantity ?: 0,
             reason = response.reason ?: "Unknown",
-            wasteDate = response.wasteDate ?: "",
+            wasteDate = formattedWasteDate,
             recordedBy = response.recordedBy ?: "Unknown",
             isSyncedToFirebase = true // Data from API is already synced
         )
+    }
+
+    // Convert ISO 8601 timestamp to "yyyy-MM-dd HH:mm:ss" format
+    private fun convertIso8601ToLocalFormat(iso8601: String): String {
+        if (iso8601.isEmpty()) return ""
+
+        return try {
+            // Parse ISO 8601 format: "2026-01-07T03:41:00.913Z"
+            val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+            inputFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
+
+            // Format to expected format: "yyyy-MM-dd HH:mm:ss"
+            val outputFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+
+            val date = inputFormat.parse(iso8601)
+            if (date != null) {
+                outputFormat.format(date)
+            } else {
+                Log.w("WasteLogRepo", "⚠️ Failed to parse date: $iso8601")
+                iso8601
+            }
+        } catch (e: Exception) {
+            Log.e("WasteLogRepo", "❌ Date conversion error: ${e.message}")
+            // Return original if conversion fails
+            iso8601
+        }
     }
 
     // ============ QUERY METHODS ============
