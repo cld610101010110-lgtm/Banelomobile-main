@@ -598,11 +598,17 @@ class ProductRepository(
 
                 // Get all products that are currently in Inventory B with expiration date <= today
                 val allProducts = daoProducts.getAllProducts()
+
+                Log.d(tag, "🔍 Checking ${allProducts.size} total products...")
+                Log.d(tag, "   Perishable products: ${allProducts.count { it.isPerishable }}")
+                Log.d(tag, "   Products with Inventory B > 0: ${allProducts.count { it.inventoryB > 0 }}")
+                Log.d(tag, "   Products with expiration dates: ${allProducts.count { !it.expirationDate.isNullOrEmpty() }}")
+
                 val expiredProducts = allProducts.filter { product ->
-                    product.transferredToB &&
+                    product.isPerishable &&
                     !product.expirationDate.isNullOrEmpty() &&
                     product.inventoryB > 0 &&
-                    product.expirationDate <= today
+                    product.expirationDate!! <= today
                 }
 
                 Log.d(tag, "📋 Found ${expiredProducts.size} expired product(s) in Inventory B")
