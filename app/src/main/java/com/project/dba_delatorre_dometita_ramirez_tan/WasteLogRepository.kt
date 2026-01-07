@@ -104,7 +104,13 @@ class WasteLogRepository(private val dao: Dao_WasteLog) {
 
                     Log.d("WasteLogRepo", "✅ Synced to Room database")
                 } else {
-                    Log.w("WasteLogRepo", "⚠️ API sync failed, using local data")
+                    val error = result.exceptionOrNull()
+                    Log.e("WasteLogRepo", "━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.e("WasteLogRepo", "❌ API sync failed!")
+                    Log.e("WasteLogRepo", "Error message: ${error?.message}")
+                    Log.e("WasteLogRepo", "Error type: ${error?.javaClass?.simpleName}")
+                    Log.e("WasteLogRepo", "━━━━━━━━━━━━━━━━━━━━━━━━", error)
+                    Log.w("WasteLogRepo", "⚠️ Using local data instead")
                 }
 
             } catch (e: Exception) {
