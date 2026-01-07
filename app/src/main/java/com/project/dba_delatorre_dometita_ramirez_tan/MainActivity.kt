@@ -28,6 +28,8 @@ import coil.memory.MemoryCache
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
+
+
 class MainActivity : ComponentActivity(), ImageLoaderFactory {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
 
         // 🆕 Schedule automatic expiration check worker for daily 6 AM
         scheduleExpirationCheckWorker()
+        runExpirationCheckNow()
 
         enableEdgeToEdge()
         val db = Database_Users.getDatabase(applicationContext)
@@ -302,7 +305,7 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
             // Create a periodic work request that runs daily at 6 AM
             val expirationCheckWork = PeriodicWorkRequestBuilder<ExpirationCheckWorker>(
                 1,  // repeat interval
-                java.util.concurrent.TimeUnit.DAYS
+                TimeUnit.DAYS
             )
                 .setInitialDelay(calculateInitialDelay(), java.util.concurrent.TimeUnit.MINUTES)
                 .addTag("expiration_check")
@@ -346,4 +349,26 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
         android.util.Log.d("MainActivity", "⏰ ExpirationCheckWorker initial delay: $delayMinutes minutes")
         return delayMinutes.toLong()
     }
+
+    private fun runExpirationCheckNow() {
+        val immediateWork = OneTimeWorkRequestBuilder<ExpirationCheckWorker>()
+            .addTag("expiration_check_now")
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                15, TimeUnit.SECONDS
+            )
+            .build()
+
+        WorkManager.getInstance(applicationContext)
+            .enqueueUniqueWork(
+                "expiration_check_now",
+                ExistingWorkPolicy.REPLACE,
+                immediateWork
+            )
+
+        android.util.Log.d("MainActivity", "🚀 Expiration check enqueued immediately")
+    }
+
 }
+
+
