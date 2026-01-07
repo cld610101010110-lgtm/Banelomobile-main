@@ -154,18 +154,18 @@ class WasteLogViewModel(
         when (period) {
             "Today" -> {
                 val todayStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                startDate = todayStr
-                endDate = todayStr
+                startDate = "$todayStr 00:00:00"
+                endDate = "$todayStr 23:59:59"
             }
             "Week" -> {
                 val weekAgo = today.minusDays(6)
-                startDate = weekAgo.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                endDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                startDate = weekAgo.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " 00:00:00"
+                endDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " 23:59:59"
             }
             "Month" -> {
                 val firstDayOfMonth = today.withDayOfMonth(1)
-                startDate = firstDayOfMonth.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                endDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                startDate = firstDayOfMonth.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " 00:00:00"
+                endDate = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " 23:59:59"
             }
             else -> return
         }
@@ -185,7 +185,11 @@ class WasteLogViewModel(
     fun filterByDateRange(startDate: String, endDate: String) {
         viewModelScope.launch {
             try {
-                val filtered = repository.getWasteLogsByDateRange(startDate, endDate)
+                // Append time ranges to include full days
+                val startDateTime = "$startDate 00:00:00"
+                val endDateTime = "$endDate 23:59:59"
+
+                val filtered = repository.getWasteLogsByDateRange(startDateTime, endDateTime)
                 wasteLogs = filtered
                 totalWasteQuantity = filtered.sumOf { it.quantity }
             } catch (e: Exception) {
