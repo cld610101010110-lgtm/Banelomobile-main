@@ -135,7 +135,18 @@ class WasteLogViewModel(
                 repository.syncFromApi()
                 wasteLogsList = repository.getAllWasteLogs()
                 wasteLogs = wasteLogsList
+
+                android.util.Log.d("WasteLogViewModel", "━━━━━━━━━━━━━━━━━━━━━━━━")
+                android.util.Log.d("WasteLogViewModel", "📋 Loaded all waste logs: ${wasteLogsList.size}")
+                if (wasteLogsList.isNotEmpty()) {
+                    android.util.Log.d("WasteLogViewModel", "   First 5 entries:")
+                    wasteLogsList.take(5).forEach { log ->
+                        android.util.Log.d("WasteLogViewModel", "     - ${log.productName} (${log.quantity}): ${log.wasteDate}")
+                    }
+                }
+                android.util.Log.d("WasteLogViewModel", "━━━━━━━━━━━━━━━━━━━━━━━━")
             } catch (e: Exception) {
+                android.util.Log.e("WasteLogViewModel", "❌ Load failed: ${e.message}", e)
                 errorMessage = "Failed to load waste logs: ${e.message}"
                 wasteLogsList = repository.getAllWasteLogs()
                 wasteLogs = wasteLogsList
@@ -170,12 +181,36 @@ class WasteLogViewModel(
             else -> return
         }
 
+        android.util.Log.d("WasteLogViewModel", "━━━━━━━━━━━━━━━━━━━━━━━━")
+        android.util.Log.d("WasteLogViewModel", "🔍 Filtering by: $period")
+        android.util.Log.d("WasteLogViewModel", "   Start: $startDate")
+        android.util.Log.d("WasteLogViewModel", "   End: $endDate")
+        android.util.Log.d("WasteLogViewModel", "   Total logs in wasteLogsList: ${wasteLogsList.size}")
+
         viewModelScope.launch {
             try {
                 val filtered = repository.getWasteLogsByDateRange(startDate, endDate)
+                android.util.Log.d("WasteLogViewModel", "   Filtered results: ${filtered.size}")
+
+                if (filtered.isNotEmpty()) {
+                    android.util.Log.d("WasteLogViewModel", "   Sample dates from filtered:")
+                    filtered.take(3).forEach { log ->
+                        android.util.Log.d("WasteLogViewModel", "     - ${log.productName}: ${log.wasteDate}")
+                    }
+                } else {
+                    android.util.Log.w("WasteLogViewModel", "   ⚠️ No results after filtering!")
+                    android.util.Log.d("WasteLogViewModel", "   Sample dates from ALL logs:")
+                    wasteLogsList.take(3).forEach { log ->
+                        android.util.Log.d("WasteLogViewModel", "     - ${log.productName}: ${log.wasteDate}")
+                    }
+                }
+
                 wasteLogs = filtered
                 totalWasteQuantity = filtered.sumOf { it.quantity }
+                android.util.Log.d("WasteLogViewModel", "   Total quantity: $totalWasteQuantity")
+                android.util.Log.d("WasteLogViewModel", "━━━━━━━━━━━━━━━━━━━━━━━━")
             } catch (e: Exception) {
+                android.util.Log.e("WasteLogViewModel", "❌ Filter failed: ${e.message}", e)
                 errorMessage = "Failed to filter waste logs: ${e.message}"
             }
         }
