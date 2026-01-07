@@ -39,8 +39,6 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
 
         // 🆕 Schedule automatic expiration check worker for daily 6 AM
         scheduleExpirationCheckWorker()
-        // Also run expiration check immediately when app opens
-        runExpirationCheckImmediately()
 
         enableEdgeToEdge()
         val db = Database_Users.getDatabase(applicationContext)
@@ -347,26 +345,5 @@ class MainActivity : ComponentActivity(), ImageLoaderFactory {
 
         android.util.Log.d("MainActivity", "⏰ ExpirationCheckWorker initial delay: $delayMinutes minutes")
         return delayMinutes.toLong()
-    }
-
-    // Run expiration check immediately when app opens
-    private fun runExpirationCheckImmediately() {
-        try {
-            android.util.Log.d("MainActivity", "🚀 Running immediate expiration check on app startup...")
-
-            CoroutineScope(Dispatchers.IO).launch {
-                val database = Database_Products.getDatabase(applicationContext)
-                val productRepository = ProductRepository(
-                    database.dao_products(),
-                    database.daoSalesReport()
-                )
-                val wasteRepository = WasteLogRepository(database.daoWasteLog())
-
-                productRepository.processExpiredProducts(wasteRepository)
-                android.util.Log.d("MainActivity", "✅ Immediate expiration check completed")
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "❌ Failed to run immediate expiration check: ${e.message}", e)
-        }
     }
 }

@@ -598,21 +598,11 @@ class ProductRepository(
 
                 // Get all products that are currently in Inventory B with expiration date <= today
                 val allProducts = daoProducts.getAllProducts()
-                Log.d(tag, "📦 Total products in database: ${allProducts.size}")
-
                 val expiredProducts = allProducts.filter { product ->
-                    val isTransferred = product.transferredToB
-                    val hasExpiration = !product.expirationDate.isNullOrEmpty()
-                    val hasStock = product.inventoryB > 0
-                    val isExpired = product.expirationDate?.let { it <= today } ?: false
-
-                    // Log each product for debugging
-                    if (isTransferred && hasExpiration && hasStock) {
-                        Log.d(tag, "🔍 Product: ${product.name}")
-                        Log.d(tag, "   Transferred: $isTransferred, Stock: ${product.inventoryB}, Expiration: ${product.expirationDate}, Expired: $isExpired")
-                    }
-
-                    isTransferred && hasExpiration && hasStock && isExpired
+                    product.transferredToB &&
+                    !product.expirationDate.isNullOrEmpty() &&
+                    product.inventoryB > 0 &&
+                    product.expirationDate <= today
                 }
 
                 Log.d(tag, "📋 Found ${expiredProducts.size} expired product(s) in Inventory B")
