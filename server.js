@@ -633,53 +633,74 @@ app.get('/api/recipes/product/:firebaseId', async (req, res) => {
     }
 });
 
-// Create recipe with ingredients
+// ============================================================================
+// CREATE RECIPE - COMPLETE CORRECTED VERSION
+// ============================================================================
 app.post('/api/recipes', async (req, res) => {
     const { productFirebaseId, productName, instructions, prep_time_minutes, cook_time_minutes, servings, ingredients } = req.body;
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+        
+        const generatedFirebaseId = `recipe_${productFirebaseId}_${Date.now()}`;
+        console.log(`[CREATE] Generating firebase_id: ${generatedFirebaseId}`);
+        console.log(`[CREATE] Product: ${productName}`);
+        console.log(`[CREATE] Ingredients count: ${ingredients?.length || 0}`);
 
-     // Insert recipe - ADD firebase_id column
-const recipeResult = await client.query(
-    `INSERT INTO recipes (firebase_id, product_firebase_id, product_name, instructions,
-                         prep_time_minutes, cook_time_minutes, servings)
-     VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5, $6, $7)
-     RETURNING *`,
-    [
-        `recipe_${productFirebaseId}_${Date.now()}`,  // Generate firebase_id
-        productFirebaseId, 
-        productName, 
-        instructions, 
-        prep_time_minutes, 
-        cook_time_minutes, 
-        servings
-    ]
-);
-;
+        // Insert recipe - include firebase_id
+        const recipeResult = await client.query(
+            `INSERT INTO recipes (firebase_id, product_firebase_id, product_name, instructions,
+                                 prep_time_minutes, cook_time_minutes, servings)
+             VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5, $6, $7)
+             RETURNING *`,
+            [
+                generatedFirebaseId,
+                productFirebaseId, 
+                productName, 
+                instructions, 
+                prep_time_minutes, 
+                cook_time_minutes, 
+                servings
+            ]
+        );
 
-       const recipeId = recipeResult.rows[0].id;
-const recipeFirebaseId = recipeResult.rows[0].firebase_id;  // ✅ Get firebase_id too!
+        // ✅ Use UUID id for ingredients (not firebase_id!)
+        const recipeId = recipeResult.rows[0].id;  // UUID id
+        const recipeFirebaseId = recipeResult.rows[0].firebase_id;
+        
+        console.log(`[CREATE] Recipe created:`);
+        console.log(`[CREATE]    - UUID id: ${recipeId}`);
+        console.log(`[CREATE]    - firebase_id: ${recipeFirebaseId}`);
 
-// Insert ingredients - USE firebase_id for linking
-for (const ingredient of ingredients) {
-    await client.query(
-        `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id,
-                                        ingredient_name, quantity_needed, unit)
-         VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
-        [recipeFirebaseId, ingredient.ingredientFirebaseId, ingredient.ingredientName,  // ✅ Use recipeFirebaseId!
-         ingredient.quantityNeeded, ingredient.unit]
-    );
-}
-
+        // ✅ Insert ingredients using UUID id
+        for (let i = 0; i < ingredients.length; i++) {
+            const ingredient = ingredients[i];
+            console.log(`[CREATE] Inserting ingredient ${i + 1}: ${ingredient.ingredientName}`);
+            
+            await client.query(
+                `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id,
+                                                ingredient_name, quantity_needed, unit)
+                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
+                [
+                    recipeId,  // ✅ Use UUID id, NOT firebase_id!
+                    ingredient.ingredientFirebaseId, 
+                    ingredient.ingredientName,
+                    ingredient.quantityNeeded, 
+                    ingredient.unit || 'g'
+                ]
+            );
+            
+            console.log(`[CREATE]    ✅ Ingredient saved (using recipe UUID: ${recipeId})`);
+        }
 
         await client.query('COMMIT');
+        console.log(`[CREATE] Transaction committed successfully`);
         res.json({ success: true, data: recipeResult.rows[0] });
 
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error creating recipe:', error);
+        console.error('[CREATE] Error creating recipe:', error);
         res.status(500).json({ success: false, error: error.message });
     } finally {
         client.release();
@@ -699,42 +720,49 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Get the numeric recipe ID first
-        const recipe = await pool.query(
-            'SELECT * FROM recipes WHERE id = $1 OR firebase_id = $1',  // ✅ CORRECT
+        console.log(`[UPDATE] Looking for recipe: ${recipeId}`);
+
+        // Get recipe - search by UUID id
+        const recipe = await client.query(
+            'SELECT * FROM recipes WHERE id::text = $1::text OR firebase_id::text = $1::text',
             [recipeId]
         );
-
-        if (recipeResult.rows.length === 0) {
+        
+        if (recipe.rows.length === 0) {
             throw new Error('Recipe not found');
         }
-
-        const numericRecipeId = recipeResult.rows[0].id;
-
+        
+        const numericRecipeId = recipe.rows[0].id;  // ✅ Get UUID id
+        console.log(`[UPDATE] Found recipe with id: ${numericRecipeId}, firebase_id: ${recipe.rows[0].firebase_id}`);
+        
         // Update recipe
-        await client.query(
+        const updateResult = await client.query(
             `UPDATE recipes
-             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id = $1 LIMIT 1),
+             SET product_firebase_id = (SELECT id FROM products WHERE firebase_id::text = $1::text LIMIT 1),
                  product_name = $2,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE firebase_id = $3`,
-            [productFirebaseId, productName, recipeId]
+             WHERE id = $3`,
+            [productFirebaseId, productName, numericRecipeId]
+        );
+        
+        console.log(`[UPDATE] Rows updated: ${updateResult.rowCount}`);
+        
+        // ✅ DELETE using UUID id, not firebase_id!
+        const deleteResult = await client.query(
+            'DELETE FROM recipe_ingredients WHERE recipe_firebase_id = $1',
+            [numericRecipeId]  // ✅ Use UUID id here!
         );
 
-        // Delete old ingredients
-        await client.query(
-            'DELETE FROM recipe_ingredients WHERE recipe_id = $1',
-            [numericRecipeId]
-        );
+        console.log(`[UPDATE] Deleted ${deleteResult.rowCount} old ingredients for recipe id: ${numericRecipeId}`);
 
-        // Insert new ingredients
+        // ✅ INSERT using UUID id
         for (const ingredient of ingredients) {
             await client.query(
-                `INSERT INTO recipe_ingredients (recipe_id, ingredient_firebase_id, 
+                `INSERT INTO recipe_ingredients (recipe_firebase_id, ingredient_firebase_id, 
                                                  ingredient_name, quantity_needed, unit)
-                 VALUES ($1, (SELECT id FROM products WHERE firebase_id = $2 LIMIT 1), $3, $4, $5)`,
+                 VALUES ($1, (SELECT id FROM products WHERE firebase_id::text = $2::text LIMIT 1), $3, $4, $5)`,
                 [
-                    numericRecipeId,
+                    numericRecipeId,  // ✅ Use UUID id, not firebase_id!
                     ingredient.ingredientFirebaseId,
                     ingredient.ingredientName,
                     ingredient.quantityNeeded,
@@ -743,17 +771,21 @@ app.put('/api/recipes/:recipeId', async (req, res) => {
             );
         }
 
+        console.log(`[UPDATE] Inserted ${ingredients.length} new ingredients`);
+
         await client.query('COMMIT');
-        res.json({ success: true, message: `Recipe for ${productName} updated successfully `});
+        console.log(`[UPDATE] Transaction committed successfully`);
+        res.json({ success: true, message: `Recipe for ${productName} updated successfully` });
 
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error updating recipe:', error);
-        res.status(500).json({ success: false, message: error.message });
+        console.error('[UPDATE] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
     } finally {
         client.release();
     }
 });
+
 
 // ============================================================================
 // DELETE RECIPE - COMPLETE CORRECTED VERSION
