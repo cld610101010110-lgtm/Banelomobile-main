@@ -154,7 +154,7 @@ data class IngredientResponse(
 )
 
 data class WasteLogResponse(
-    val id: Int?,
+    val id: String?,  // UUID from PostgreSQL
     @SerializedName("firebase_id")
     val firebaseId: String?,
     @SerializedName("product_firebase_id")
