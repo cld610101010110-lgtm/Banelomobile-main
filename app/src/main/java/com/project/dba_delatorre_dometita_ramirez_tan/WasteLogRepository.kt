@@ -92,8 +92,17 @@ class WasteLogRepository(private val dao: Dao_WasteLog) {
                 }
 
                 if (result.isSuccess) {
-                    Log.d("WasteLogRepo", "✅ API sync completed")
-                    // Data is already in Room, API is backup
+                    val wasteLogs = result.getOrNull() ?: return@withContext
+                    Log.d("WasteLogRepo", "✅ API returned ${wasteLogs.size} waste logs")
+
+                    // Convert API responses to entities
+                    val entities = wasteLogs.map { convertToEntity(it) }
+
+                    // Cache in Room for offline access
+                    dao.clearAllWasteLogs()
+                    dao.insertWasteLogs(entities)
+
+                    Log.d("WasteLogRepo", "✅ Synced to Room database")
                 } else {
                     Log.w("WasteLogRepo", "⚠️ API sync failed, using local data")
                 }
@@ -103,6 +112,23 @@ class WasteLogRepository(private val dao: Dao_WasteLog) {
                 // Continue with local data
             }
         }
+    }
+
+    // ============ HELPER: Convert API response to Entity ============
+
+    private fun convertToEntity(response: WasteLogResponse): Entity_WasteLog {
+        return Entity_WasteLog(
+            id = 0, // Room will auto-generate
+            firebaseId = response.firebaseId ?: "",
+            productFirebaseId = response.productFirebaseId ?: "",
+            productName = response.productName ?: "",
+            category = response.category ?: "",
+            quantity = response.quantity ?: 0,
+            reason = response.reason ?: "Unknown",
+            wasteDate = response.wasteDate ?: "",
+            recordedBy = response.recordedBy ?: "Unknown",
+            isSyncedToFirebase = true // Data from API is already synced
+        )
     }
 
     // ============ QUERY METHODS ============

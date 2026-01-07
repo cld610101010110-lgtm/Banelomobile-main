@@ -153,6 +153,27 @@ data class IngredientResponse(
     val unit: String? = null
 )
 
+data class WasteLogResponse(
+    val id: Int?,
+    @SerializedName("firebase_id")
+    val firebaseId: String?,
+    @SerializedName("product_firebase_id")
+    val productFirebaseId: String?,
+    @SerializedName("product_name")
+    val productName: String?,
+    val category: String?,
+    val quantity: Int?,
+    val reason: String?,
+    @SerializedName("waste_date")
+    val wasteDate: String?,
+    @SerializedName("recorded_by")
+    val recordedBy: String?,
+    @SerializedName("cost_impact")
+    val costImpact: Double?,
+    @SerializedName("created_at")
+    val createdAt: String?
+)
+
 // ============ RETROFIT API INTERFACE ============
 
 interface BaneloApiInterface {
@@ -218,7 +239,7 @@ interface BaneloApiInterface {
 
     // WASTE LOGS
     @GET("api/waste")
-    suspend fun getWasteLogs(): ApiResponse<List<Any>>
+    suspend fun getWasteLogs(): ApiResponse<List<WasteLogResponse>>
 
     @POST("api/waste")
     suspend fun createWasteLog(@Body log: JsonObject): ApiResponse<Any>
